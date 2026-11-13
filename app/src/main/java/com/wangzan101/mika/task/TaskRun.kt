@@ -602,6 +602,7 @@ class TaskRun(
             val metrics = mainScreenMetrics()
             // 在 App 里操作的节奏(设置 › 任务运行);评测、真机验收按钩子覆盖
             val pace = env.evalHooks.operatingPace ?: FeatureFlags.get(service).operatingPace()
+            val fastPace = pace == com.wangzan101.mika.core.cap.phone.OperatingPace.FAST
             // 助手是否连着;没接上手机之前当作连着(网页、沙箱的步骤不看它)
             val shellUp = MutableStateFlow(true)
             val states = DeviceStateWatcher(service) { id -> phone?.shell?.topTaskId(id) ?: -1 }.also { watcher = it }
@@ -632,7 +633,8 @@ class TaskRun(
                 shellBinder = shell.asBinder()
                 side.launch { conn.shell.map { it != null }.collect { shellUp.value = it } }
                 val agentDisplay = LazyAgentDisplay(metrics.widthPixels, metrics.heightPixels) {
-                    suspend fun create() = resources.acquire(Dispatchers.IO, AgentDisplay::release) { AgentDisplay(shell, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi, service.getSystemService(DisplayManager::class.java)) }
+                    suspend fun create() = resources.acquire(Dispatchers.IO, AgentDisplay::release) { AgentDisplay(shell, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi, service.getSystemService(DisplayManager::class.java),
+                        previewShortSide = if (FeatureFlags.get(service).controlInScreen()) 720 else 360) }
                     try {
                         create()
                     } catch (e: Exception) {
@@ -861,7 +863,7 @@ class TaskRun(
             val childRunner = if (provenance.origin == RunOrigin.Ui && web != null) ChildAgentRunner(
                 create = { childSpec ->
                     val childTools = toolDispatcher(accessedPhone, model.capabilities.vision,
-                        web = web, webPacing = { PagePacing.human() }, webPlacePace = { PlacePace.of(catalog.sitePace(it)) },
+                        web = web, webPacing = { if (fastPace) PagePacing.Off else PagePacing.human() }, webPlacePace = { PlacePace.of(catalog.sitePace(it)) },
                         webIdleScroll = { IdleScroll(Random.Default) },
                         appPacing = { pace.appPacing() }, appPace = { PlacePace.of(catalog.appPace(it)) }, appIdleScroll = { IdleScroll(Random.Default) },
                         sandbox = sandbox, workspace = { conversationId }, runSpec = childSpec,
@@ -870,7 +872,7 @@ class TaskRun(
                     AgentLoop(model, childTools, SystemPrompt.identity(), maxSteps = childSpec.stepBudget ?: AgentLoop.UNLIMITED_STEPS,
                         // 子任务跟着询问 / 自主;询问时它也过关卡,子任务里花钱的一步一律不做
                         confirmations = runApproval.gate(), approvals = runApproval, autonomous = runApproval.startedAutonomous,
-                        reviewFinalAnswer = false, flags = speed, outwardPacing = OutwardPacing.human())
+                        reviewFinalAnswer = false, flags = speed, outwardPacing = if (fastPace) OutwardPacing.Off else OutwardPacing.human())
                 },
                 store = (service.application as MikaApp).childRuns,
                 ownerAlive = { job?.isActive == true },
@@ -895,7 +897,7 @@ class TaskRun(
                 utterances = utterances, conversationId = conversationId,
                 web = web,
                 // 同一个网站一页一页看:换页前补足停留,不连着秒开
-                webPacing = { PagePacing.human() },
+                webPacing = { if (fastPace) PagePacing.Off else PagePacing.human() },
                 // 停留时像人一样把页面轻轻滚几下
                 webIdleScroll = { IdleScroll(Random.Default) },
                 // 在 App 里一步一步操作:动作之间停一会儿,限制浏览快慢的 App 停得更久、屏数有上限(按设置里的操作节奏)
@@ -986,7 +988,7 @@ class TaskRun(
                 streamReplies = true,
                 userScreens = userScreens,
                 // 同一网站、App 里连着联系别人、提交:两次之间隔一段随机的时间
-                outwardPacing = OutwardPacing.human(),
+                outwardPacing = if (fastPace) OutwardPacing.Off else OutwardPacing.human(),
             )
             loop = agent
             liveFeed = agent.events.subscribe(liveEvents)

@@ -175,7 +175,7 @@ class FeatureFlags(private val prefs: SharedPreferences) {
      * 允许 Mika 改自己的设置(见 core 的 SelfConfig):模型与 Key、删数据不在允许之列。
      * 默认关;开着的时候任务里才有 settings_list、settings_set 这两件工具。
      */
-    fun selfConfig(): Boolean = prefs.getBoolean(SELF_CONFIG, false)
+    fun selfConfig(): Boolean = prefs.getBoolean(SELF_CONFIG, true)
 
     fun setSelfConfig(on: Boolean) {
         prefs.edit().putBoolean(SELF_CONFIG, on).commit()
@@ -185,7 +185,7 @@ class FeatureFlags(private val prefs: SharedPreferences) {
      * 允许 Mika 操作自己的界面(见 core 的 SelfPort):打开 Mika 的页、把工作区文件用 App 内查看器打开、
      * 发通知、写剪贴板。默认关;模型改不了这个开关。
      */
-    fun selfOperate(): Boolean = prefs.getBoolean(SELF_OPERATE, false)
+    fun selfOperate(): Boolean = prefs.getBoolean(SELF_OPERATE, true)
 
     fun setSelfOperate(on: Boolean) {
         prefs.edit().putBoolean(SELF_OPERATE, on).commit()
@@ -202,6 +202,8 @@ class FeatureFlags(private val prefs: SharedPreferences) {
      * On ("control in screen"): while a task is running, the live view of everything the agent does fills the chat screen.
      */
     fun controlInScreen(): Boolean = prefs.getBoolean(CONTROL_IN_SCREEN, false)
+
+    fun controlInScreenChanges(): Flow<Boolean> = booleanChanges(CONTROL_IN_SCREEN, ::controlInScreen)
 
     fun setControlInScreen(on: Boolean) {
         prefs.edit().putBoolean(CONTROL_IN_SCREEN, on).commit()
@@ -375,6 +377,9 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         private val SPEED_UPGRADES: List<Pair<String, (SpeedFlags) -> SpeedFlags>> = listOf(
             "speed_defaults_applied_v2" to { f -> f.copy(inlineScreen = true, batchSteps = true, adaptiveVision = true) },
             "speed_defaults_applied_v3" to { f -> f.copy(replay = true) },
+            // v4: the context is now folded much earlier (see ContextLimits.SOFT_TRIGGER), so the folded summary keeps
+            // goal / confirmed facts / progress / next step.
+            "speed_defaults_applied_v4" to { f -> f.copy(structuredCompaction = true) },
         )
         private const val PARALLEL_MAX = "parallel_max"
         private const val TASK_STEP_LIMIT = "task_step_limit"

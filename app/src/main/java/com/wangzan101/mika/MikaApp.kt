@@ -313,6 +313,9 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
     /** 浮在别的 App 上的悬浮胶囊。 */
     val capsule: CapsuleController by lazy { CapsuleController(this, taskState, foreground, resources.takeoverQueue) }
 
+    /** "Control in screen": the full-screen live view that locks touch while a task works. */
+    val screenControl: com.wangzan101.mika.task.ScreenControl by lazy { com.wangzan101.mika.task.ScreenControl(this, taskState) }
+
     /** 人工示范。onCreate 里建好；在那之前的无障碍事件不采集。 */
     lateinit var teach: TeachRuntime
         private set
@@ -430,6 +433,7 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
         // 内置浏览器:设了代理才给 WebView 设上(读设置要解密,放到后台;没设代理不为此加载 WebView)
         scope.launch(Dispatchers.IO) { runCatching { com.wangzan101.mika.cap.web.WebProxy.apply(this@MikaApp) } }
         capsule.start()
+        screenControl.start()
         // 内置助手的真实现,并开始看着助手(Mika 进程起来后,还活着的助手会自己交接 Binder)
         phone.shellManager.start()
         // 连接一可用就补上默认打开的几项能力

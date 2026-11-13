@@ -654,7 +654,11 @@ class ProviderStore(
             contextTokens = settings.windowTokens ?: cfg.capabilities.contextTokens,
             compactionTriggerTokens = settings.triggerTokens,
         ))
+        // Nothing chosen: when the provider itself lists the levels this model accepts and "low" is one of them, use it.
+        // Agent steps are many small decisions; low thinking answers much faster and spends far fewer output tokens.
+        // A level picked in Settings always wins.
         val roleEffort = _roles.value.reasoningEffort(role)
+            ?: ReasoningOptions.of(cfg, listed)?.takeIf { it.fromProvider }?.levels?.firstOrNull { it == "low" }
         // 主动能力:思考取服务商写明的最低档;回复短的那两种请求另设上限(见 ProactiveModelSetup)
         val (effort, cap) = if (purpose == UsagePurpose.Proactive) {
             ProactiveModelSetup.of(adapterFor(cfg, listed?.endpoint).first, ReasoningOptions.of(cfg, listed), roleEffort, call)

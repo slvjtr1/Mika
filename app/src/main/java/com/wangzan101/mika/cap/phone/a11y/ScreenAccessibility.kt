@@ -136,7 +136,7 @@ open class ScreenAccessibility : AccessibilityService() {
             if (!service.dispatchGesture(gesture, callback, null) && cont.isActive) cont.resume(false)
         }
         // 注入是在用户屏幕上操作别的 App,不是操作 Mika 自己的浮层;所有单点、双击和拖动统一隔离
-        return service.overlayHost?.passInjectedGesturesThrough { send() } ?: send()
+        return service.overlayHost?.passInjectedGesturesThrough(onMain = displayId == Display.DEFAULT_DISPLAY) { send() } ?: send()
     }
 
     /** 截一张用户屏幕(主屏)的结果:画面,或屏上有防截屏窗口,或截不到(错误码)。 */

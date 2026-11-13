@@ -242,5 +242,7 @@
     <string name="settings_control_background">التحكم في الخلفية</string>
     <string name="settings_control_background_detail">يشتغل Mika على شاشة مخفية خاصة فيه، وتشوف معاينة صغيرة مباشرة تقدر تكبرها بلمسة.</string>
     <string name="settings_control_screen">التحكم في الشاشة</string>
-    <string name="settings_control_screen_detail">كل شيء يسويه Mika يظهر قدامك بالحجم الكامل وهو يشتغل. المس خارجها لتصغيرها.</string>
+    <string name="settings_control_screen_detail">Mika يسيطر على الشاشة كاملة وهو يشتغل: تشوف كل خطوة مباشرة، اللمس مقفل، وما يستجيب إلا زر STOP تحت.</string>
+    <string name="screen_control_stop">STOP</string>
+    <string name="screen_control_locked">Mika يتحكم الآن · اللمس مقفل</string>
 </resources>

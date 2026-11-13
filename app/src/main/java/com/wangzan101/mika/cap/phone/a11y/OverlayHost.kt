@@ -118,8 +118,10 @@ class HoldGesture(private val slopPx: Float) {
  */
 class OverlayHost internal constructor(private val service: ScreenAccessibility) {
     private val windows = mutableListOf<OverlayWindow>()
+    /** Whether the gesture being injected right now lands on the user's screen (the default display). */
+    @Volatile private var gestureOnMain = true
     private val injectedGestures = InjectedGestures { isolate ->
-        forEachGestureWindow(windows.toList()) { it.isolateInjectedGestures(isolate) }
+        forEachGestureWindow(windows.toList()) { it.isolateInjectedGestures(isolate, gestureOnMain) }
     }
 
     /**
@@ -219,7 +221,10 @@ class OverlayHost internal constructor(private val service: ScreenAccessibility)
      * 结束后恢复每个窗口原本能不能接触摸;原本不接触摸的面板不会被误改成可触摸。嵌套手势只在外层结束时恢复。
      * 调用方取消协程时也等系统手势收尾再恢复:取消等待并不会撤掉已经注入系统的触摸。
      */
-    suspend fun <T> passInjectedGesturesThrough(block: suspend () -> T): T = injectedGestures.passThrough(block)
+    suspend fun <T> passInjectedGesturesThrough(onMain: Boolean = true, block: suspend () -> T): T {
+        gestureOnMain = onMain
+        return injectedGestures.passThrough(block)
+    }
 
     /** 拆掉全部浮层(服务断开时)。 */
     fun closeAll() {
@@ -248,6 +253,9 @@ class OverlayWindow internal constructor(
 ) {
     var isOpen = true
         private set
+
+    /** Stay touchable (keep swallowing the user's touches) while the agent injects gestures on another display. */
+    var keepBlockingDuringAgentGestures = false
 
     /** 窗口此刻的宽高(像素);还没排版时为 0。 */
     val width: Int get() = frame.width
@@ -303,8 +311,9 @@ class OverlayWindow internal constructor(
     }
 
     /** 注入手势期间临时不接触摸;结束时按这个窗口创建时的 [touchable] 恢复。 */
-    internal fun isolateInjectedGestures(isolate: Boolean) {
+    internal fun isolateInjectedGestures(isolate: Boolean, onMain: Boolean = true) {
         if (!isOpen) return
+        if (isolate && keepBlockingDuringAgentGestures && !onMain) return
         val flags = if (touchable && !isolate) params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
             else params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         if (flags == params.flags) return

@@ -23,6 +23,14 @@ class ContextLimits private constructor(
         const val AFTER_COMPACTION = 0.5
         /** 触发点的下限(占窗口的比例):给了别的触发点也不会低到一开局就压。 */
         const val MIN_TRIGGER_SHARE = 0.5
+        /**
+         * Soft cap on the trigger, whatever the model window is: every step resends the whole request, so letting the
+         * history grow to a 200k (or 1M) window makes a long task cost many times more for no gain. Old screens are
+         * stale anyway; they are shortened and folded once the request passes this many tokens.
+         */
+        const val SOFT_TRIGGER = 64_000
+        /** What a fold aims for when the soft cap is what triggered it. */
+        const val SOFT_TARGET = 36_000
 
         /**
          * [window]:模型上下文长度。[triggerOverride]:按模型单独给的触发点(整份请求的 token);限在下限和 [usable] 之间。
@@ -31,9 +39,10 @@ class ContextLimits private constructor(
             val w = window.coerceAtLeast(0)
             val usable = w - minOf(MAX_OUTPUT_RESERVE, w / 4)
             val margin = minOf(MARGIN_TOKENS, usable / 4)
-            val floor = minOf((w * MIN_TRIGGER_SHARE).toInt(), usable)
-            val trigger = (triggerOverride ?: (usable - margin)).coerceIn(floor, usable)
-            val target = minOf((usable * AFTER_COMPACTION).toInt(), trigger - margin).coerceAtLeast(0)
+            val floor = minOf((w * MIN_TRIGGER_SHARE).toInt(), usable, SOFT_TRIGGER)
+            val trigger = (triggerOverride ?: minOf(usable - margin, SOFT_TRIGGER)).coerceIn(floor, usable)
+            val soft = triggerOverride == null && trigger == SOFT_TRIGGER
+            val target = (if (soft) SOFT_TARGET else minOf((usable * AFTER_COMPACTION).toInt(), trigger - margin)).coerceAtLeast(0)
             return ContextLimits(w, usable, trigger, margin, target, floor)
         }
     }

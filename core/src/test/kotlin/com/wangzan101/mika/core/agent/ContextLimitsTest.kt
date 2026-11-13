@@ -34,21 +34,22 @@ class ContextLimitsTest {
     @Test fun commonWindow128k() {
         val l = ContextLimits.of(128_000)
         assertEquals(108_000, l.usable)
-        assertEquals(95_000, l.trigger)
-        assertEquals(54_000, l.target)
+        // the soft cap, not the window, decides when a large window is folded
+        assertEquals(ContextLimits.SOFT_TRIGGER, l.trigger)
+        assertEquals(ContextLimits.SOFT_TARGET, l.target)
     }
 
     @Test fun hugeWindow1m() {
         val l = ContextLimits.of(1_000_000)
         assertEquals(980_000, l.usable)
-        assertEquals(967_000, l.trigger)
-        assertEquals(490_000, l.target)
+        assertEquals(ContextLimits.SOFT_TRIGGER, l.trigger)
+        assertEquals(ContextLimits.SOFT_TARGET, l.target)
     }
 
     @Test fun triggerNeverBelowFloorNorAboveUsable() {
         for (w in listOf(100, 1_000, 4_096, 8_192, 32_000, 128_000, 1_000_000)) {
             val l = ContextLimits.of(w)
-            assertTrue("$w", l.trigger >= w * ContextLimits.MIN_TRIGGER_SHARE && l.trigger <= l.usable)
+            assertTrue("$w", l.trigger >= minOf(w * ContextLimits.MIN_TRIGGER_SHARE, ContextLimits.SOFT_TRIGGER.toDouble()) && l.trigger <= l.usable)
             assertTrue("$w", l.target < l.trigger)
         }
         // 按模型给的触发点:限在下限和可用窗口之间;目标跟着降

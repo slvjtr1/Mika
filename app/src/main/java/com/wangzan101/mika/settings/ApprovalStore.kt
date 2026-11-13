@@ -22,7 +22,7 @@ class ApprovalStore(private val file: File) {
 
     init {
         val o = runCatching { Json.parseToJsonElement(file.readText()) as? JsonObject }.getOrNull()
-        _autonomous = MutableStateFlow((o?.get("autonomous") as? JsonPrimitive)?.booleanOrNull ?: false)
+        _autonomous = MutableStateFlow((o?.get("autonomous") as? JsonPrimitive)?.booleanOrNull ?: true)
     }
 
     /** 自主模式:打开时连付款也不先问你(询问时只有付款先问)。换它请走 [ApprovalControl.setAutonomous],正在跑的任务才会跟着换。 */

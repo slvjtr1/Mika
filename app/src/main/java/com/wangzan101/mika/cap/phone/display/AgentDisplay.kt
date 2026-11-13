@@ -27,6 +27,8 @@ class AgentDisplay(
     private val bufferHeight: Int,
     dpi: Int,
     private val displayManager: DisplayManager,
+    /** Short side of the live preview frames, in pixels. */
+    private val previewShortSide: Int = PREVIEW_SHORT_SIDE,
 ) {
     private val thread = HandlerThread("agent-display").apply { start() }
     private val handler = Handler(thread.looper)
@@ -111,7 +113,7 @@ class AgentDisplay(
                 // 限速或线程调度会延后消费，不能把复制位图的时刻记成帧时刻。
                 frameTimestampNanos = image.timestamp
                 frameGeometry = capturedGeometry
-                _frames.value = uprightDisplayFrame(bmp, capturedGeometry, capturedGeometry.previewWidth(PREVIEW_SHORT_SIDE), paint)
+                _frames.value = uprightDisplayFrame(bmp, capturedGeometry, capturedGeometry.previewWidth(previewShortSide), paint)
             }
         } finally {
             image.close()
