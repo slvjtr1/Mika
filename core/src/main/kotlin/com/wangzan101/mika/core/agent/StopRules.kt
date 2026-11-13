@@ -87,6 +87,8 @@ internal fun userReason(e: ModelError): String = when (e) {
         "This account has not enabled or cannot use model \"${e.model.ifEmpty { "current model" }}\". Pick another model in Settings › Model, or enable it in your provider dashboard."
     is ModelError.ToolsUnsupported ->
         "Model \"${e.model.ifEmpty { "current model" }}\" does not support tool calls, and Mika needs tools to work. Pick a model with tool calling in Settings › Model."
+    is ModelError.RequestTooLarge ->
+        "The model service only accepts requests up to ${e.limit ?: "a small number of"} tokens (often a free-tier limit per minute), and this step needs more even in lean mode. Use a model or plan with a higher limit (for example a free Gemini API key), or split the task."
     is ModelError.ContextTooLong -> "The conversation is longer than the model's context window. Use a model with a longer context, or split the task into smaller parts."
     is ModelError.ContentRefused -> "The model refused this content. Rephrase the task or use another model."
     is ModelError.ReasoningEffortRejected ->

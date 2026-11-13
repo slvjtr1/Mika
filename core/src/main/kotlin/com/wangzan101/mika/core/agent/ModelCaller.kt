@@ -49,6 +49,8 @@ internal class ModelCaller(
 
     /** 本任务的系统提示词:开工时按发给模型的同一份工具列表拼([SystemPrompt.assemble]),任务内不变。 */
     var systemPrompt: String = ""
+    /** Lean mode: fold the history to fit under this many tokens, whatever the model's own window. */
+    var contextCap: Int? = null
 
     /** 最近一次调用在成功那次请求之前花掉的时间(失败的请求、退避)。 */
     var lastRetryWaitMs = 0L
@@ -169,7 +171,7 @@ internal class ModelCaller(
         lastRetryWaitMs = 0
         val began = now()
         val overhead = TokenEstimate.of(systemPrompt) + specs.sumOf { TokenEstimate.of(it.name + it.description + it.parametersJsonSchema) }
-        val contextTokens = using.capabilities.contextTokens
+        val contextTokens = contextCap?.let { minOf(it, using.capabilities.contextTokens) } ?: using.capabilities.contextTokens
         val compressor = compressorFor(using)
         var compaction = compactions[using] ?: CompactionState()
         var overflowRetried = false

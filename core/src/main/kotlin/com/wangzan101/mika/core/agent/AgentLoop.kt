@@ -71,6 +71,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -180,6 +181,10 @@ class AgentLoop(
     private val streamReplies: Boolean = false,
     /** Try plain chat first (see [ChatFastPath]): short messages that need no tools cost a few hundred tokens. */
     private val chatFastPath: Boolean = false,
+    /** The provider's known cap on a request (tokens); set: start in [LeanMode]. */
+    requestLimit: Int? = null,
+    /** The provider said a request was too large; the limit it named, to remember for this model. */
+    private val onRequestLimit: (Int) -> Unit = {},
     /** 这个对话里用户发来的屏幕(见 [UserScreenTurns]);没有时带屏幕的那一行原样给模型。 */
     private val userScreens: UserScreenSource? = null,
     /** 评测可保留旧收尾核查；交互产品由执行过程观察结果，收尾只整理来源。 */
@@ -205,6 +210,9 @@ class AgentLoop(
     }
 
     private val caller = ModelCaller(model, tools, router, flags, retry, ::emit, ::now, autonomous, trace)
+    @Volatile private var lean = requestLimit != null
+    private var leanLimit: Int? = requestLimit
+    private class LeanRestart : RuntimeException()
     private val intentGate = intentJudge?.let { IntentGate(it, model.takeUnless { main -> main === it }) }
     private val routeMatcher = routes
     /** 本任务的上下文生成器(外壳、预算、已给过的参考资料)。 */
@@ -347,20 +355,38 @@ class AgentLoop(
                 _state.value = cur?.copy(preview = raw) ?: TaskState.Running(1, "", preview = raw)
             }
         }
-        val reply = try {
-            val m = model
-            if (m is StreamingChatModel) m.completeStreaming(ChatFastPath.PROMPT, messages, emptyList(), onText)
-            else m.complete(ChatFastPath.PROMPT, messages, emptyList())
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            return null
+        val asked = now()
+        // Same patience as the agent's own calls: a rate limit or a busy server is waited out, not a reason to load
+        // the whole agent. A streaming failure that is not a model error is tried once more without streaming.
+        val policy = RetryPolicy(maxRetries = 2)
+        var retries = 0
+        var stream = model is StreamingChatModel
+        var got: ModelReply? = null
+        while (got == null) {
+            try {
+                val m = model
+                got = if (stream && m is StreamingChatModel) m.completeStreaming(ChatFastPath.PROMPT, messages, emptyList(), onText)
+                    else m.complete(ChatFastPath.PROMPT, messages, emptyList())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val wait = if (e is ModelError) policy.delayFor(e, retries) else null
+                if (wait != null) { retries++; delay(wait); continue }
+                if (stream && e !is ModelError) { stream = false; continue }
+                emit(RunEvent.State(now(), "chat_fast_path", "error: ${e::class.simpleName}: ${e.message?.take(160)}"))
+                return null
+            }
         }
+        val reply: ModelReply = got
         val text = reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.trim()
+        emit(RunEvent.ModelReply(now(), 0, RunEvent.clip(Redactor.text(text)), null, null,
+            reply.usage?.inputTokens, reply.usage?.outputTokens, reply.usage?.cachedInputTokens, now() - asked, model.name, "chat"))
         if (text.isEmpty() || ChatFastPath.wantsTask(text)) {
+            emit(RunEvent.State(now(), "chat_fast_path", if (text.isEmpty()) "empty" else "needs_task"))
             (_state.value as? TaskState.Running)?.let { if (it.preview != null) _state.value = it.copy(preview = null) }
             return null
         }
+        emit(RunEvent.State(now(), "chat_fast_path", "answered"))
         return TaskState.Succeeded(text, verified = false, reviewed = false)
     }
 
@@ -406,7 +432,24 @@ class AgentLoop(
         job?.cancel()
     }
 
-    private suspend fun loop(raw: String, rawPrior: List<Turn>, inbox: RunInbox?): TaskState {
+    private suspend fun loop(raw: String, rawPrior: List<Turn>, inbox: RunInbox?): TaskState = try {
+        loopOnce(raw, rawPrior, inbox)
+    } catch (_: LeanRestart) {
+        emit(RunEvent.State(now(), "lean_mode", "restart limit=${leanLimit ?: "?"}"))
+        loopOnce(raw, rawPrior, inbox)
+    }
+
+    /** The provider refused a request as too large: switch to lean mode. False when already lean (nothing left to cut). */
+    private fun enterLean(e: ModelError.RequestTooLarge): Boolean {
+        if (lean) return false
+        lean = true
+        leanLimit = e.limit
+        e.limit?.let(onRequestLimit)
+        caller.contextCap = LeanMode.contextCap(leanLimit)
+        return true
+    }
+
+    private suspend fun loopOnce(raw: String, rawPrior: List<Turn>, inbox: RunInbox?): TaskState {
         // 用户发来的屏幕:这一句给全(那句话、截图、详情),之前几轮里的收成一行;下面都用换好的这句
         val shots = UserScreenTurns(userScreens, zone, tools.seesImages, canAskVision = !tools.seesImages && tools.vision != null && tools.definitions().any { it.name == VIEW_USER_SCREEN },
             image = { tools.modelImage(it, null) }, seen = tools::noteUserScreen).also { screens = it }
@@ -417,8 +460,9 @@ class AgentLoop(
         latestWords = ownWords(raw, opening)
         val priorTurns = shots.collapse(rawPrior)
         answeredAsChat = false
-        if (chatFastPath && opening == null && ChatFastPath.candidate(raw)) {
-            chatOnly(task, priorTurns)?.let { answeredAsChat = true; return it }
+        if (chatFastPath && opening == null) {
+            if (ChatFastPath.candidate(raw)) chatOnly(task, priorTurns)?.let { answeredAsChat = true; return it }
+            else emit(RunEvent.State(now(), "chat_fast_path", "skipped"))
         }
         // 通知提醒那一轮没有用户的话,不算进「之前几轮用户说的话」
         earlierGoals = priorTurns.filterNot(NoticeTurn::isNotice).map { it.userText }
@@ -462,10 +506,11 @@ class AgentLoop(
         var specs = emptyList<ToolSpec>()
         // 每次问模型之前:展开了新的组时,工具和系统提示词跟着换;没展开就一字不变
         fun refreshOffer() {
-            val offer = tools.offeredNow(listOfNotNull(batchSpec)).filter(::keep)
+            val full = tools.offeredNow(listOfNotNull(batchSpec.takeUnless { lean })).filter(::keep)
+            val offer = if (lean) LeanMode.tools(full) else full
             if (offer == specs) return
             specs = offer
-            caller.systemPrompt = SystemPrompt.assemble(basePrompt, tools.promptSections(specs))
+            caller.systemPrompt = if (lean) LeanMode.PROMPT else SystemPrompt.assemble(basePrompt, tools.promptSections(specs))
             (tools.expanded - openGroups).forEach { emit(RunEvent.State(now(), "tools_opened", it)) }
             openGroups = tools.expanded
         }
@@ -492,7 +537,8 @@ class AgentLoop(
         interruptedStep = 0
         var note = ""
         // 除用户原话以外的上下文都经它生成:统一外壳、统一预算
-        ctx = ContextBuilder(zone = zone)
+        ctx = if (lean) ContextBuilder(LeanMode.budget(leanLimit), zone) else ContextBuilder(zone = zone)
+        if (lean) caller.contextCap = LeanMode.contextCap(leanLimit)
         val installed = try { installedApps() } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
         val labels = installed.toMap()
         val matched = knowledge?.matchTask(task, Int.MAX_VALUE, installed).orEmpty()
@@ -553,6 +599,11 @@ class AgentLoop(
         // 每次运行只判断一次;判断不出(调用失败、回复不是三个词之一)时为 null,照主模型自己的决定走
         suspend fun assessIntent(): IntentGate.Intent? {
             intentAssessed = true
+            // A plain order needs no second opinion: one model round trip less before the first action.
+            if (opening == null && ChatFastPath.startsWithCommand(task)) {
+                emit(RunEvent.State(now(), "intent_gate", "command"))
+                return IntentGate.Intent.Act
+            }
             // 只发来屏幕、没说话:没有话可判,按屏幕猜意图的规矩交给主模型
             val result = if (opening != null && opening.words.isEmpty()) null else intentGate?.assess(task, priorTurns)
             emit(RunEvent.State(now(), "intent_gate", result?.name ?: "unavailable"))
@@ -579,6 +630,12 @@ class AgentLoop(
                 routedOrRedirect(inbox, history, specs, track, step, { asked = it }, previewFor(step))
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: ModelError.RequestTooLarge) {
+                if (!enterLean(e)) return StopRules.modelFailed(e)
+                // Nothing done yet: start over lean (short prompt, few tools, small context). Otherwise go on lean.
+                if (!acted) throw LeanRestart()
+                emit(RunEvent.State(now(), "lean_mode", "limit=${leanLimit ?: "?"}"))
+                continue
             } catch (e: Exception) {
                 return StopRules.modelFailed(e)
             }

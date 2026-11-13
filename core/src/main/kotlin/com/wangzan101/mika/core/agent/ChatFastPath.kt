@@ -44,6 +44,18 @@ object ChatFastPath {
         return !ACTION.containsMatchIn(t)
     }
 
+    /** Opens with an order ("open YouTube", "افتح يوتيوب", "send …"): no need to ask a model whether to act. */
+    private val COMMAND = Regex(
+        "^\\s*(please\\s+|pls\\s+|لو سمحت\\s+|ممكن\\s+|请)?(" +
+            "open|launch|start|send|text|message|call|dial|search|find|book|order|buy|set|remind|play|download|install|" +
+            "uninstall|turn (on|off)|enable|disable|go to|take a screenshot|delete|reply|post|" +
+            "افتح|شغل|ارسل|أرسل|راسل|اتصل|ابحث|دور|احجز|اطلب|اشتر|ذكرني|نزل|حمل|ثبت|احذف|اكتب|" +
+            "打开|发送|搜索|播放|下载|安装|设置|删除)(?=\\s|$|[,.!?،:]|(?<=[一-鿿]))",
+        RegexOption.IGNORE_CASE,
+    )
+
+    fun startsWithCommand(text: String): Boolean = text.length <= 400 && COMMAND.containsMatchIn(text)
+
     /** The model asked for the full agent. */
     fun wantsTask(reply: String): Boolean = reply.trim().startsWith(TASK_MARK)
 }

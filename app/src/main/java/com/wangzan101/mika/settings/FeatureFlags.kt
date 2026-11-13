@@ -208,6 +208,13 @@ class FeatureFlags(private val prefs: SharedPreferences) {
     /** Experimental: the agent operates the real screen instead of its own display. Off by default. */
     fun controlMainScreen(): Boolean = prefs.getBoolean(CONTROL_MAIN_SCREEN, false)
 
+    /** A provider's cap on one request, learned from its "request too large" reply; null = not known. */
+    fun requestLimit(model: String): Int? = prefs.getInt(REQUEST_LIMIT + model, 0).takeIf { it > 0 }
+
+    fun setRequestLimit(model: String, limit: Int) {
+        prefs.edit().putInt(REQUEST_LIMIT + model, limit).apply()
+    }
+
     fun controlMainScreenChanges(): Flow<Boolean> = booleanChanges(CONTROL_MAIN_SCREEN, ::controlMainScreen)
 
     fun setControlMainScreen(on: Boolean) {
@@ -389,6 +396,8 @@ class FeatureFlags(private val prefs: SharedPreferences) {
             // v4: the context is now folded much earlier (see ContextLimits.SOFT_TRIGGER), so the folded summary keeps
             // goal / confirmed facts / progress / next step.
             "speed_defaults_applied_v4" to { f -> f.copy(structuredCompaction = true) },
+            // v5: open an app's screen directly by link when the app knowledge has one (fewer taps, fewer steps).
+            "speed_defaults_applied_v5" to { f -> f.copy(deepLinks = true) },
         )
         private const val PARALLEL_MAX = "parallel_max"
         private const val TASK_STEP_LIMIT = "task_step_limit"
@@ -403,6 +412,7 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         private const val PIP_OPERATE = "pip_operate"
         private const val CONTROL_IN_SCREEN = "control_in_screen"
         private const val CONTROL_MAIN_SCREEN = "control_main_screen"
+        private const val REQUEST_LIMIT = "request_limit:"
         private const val EXTERNAL_SCHEDULE = "external_schedule"
         private const val PROACTIVE = "proactive"
         private const val THEME_MODE = "theme_mode"

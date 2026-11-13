@@ -17,6 +17,9 @@ sealed class ModelError(message: String, cause: Throwable? = null) : Exception(m
     class ProactiveBudgetExceeded(val limit: Long, val used: Long, val byCalls: Boolean = false) : ModelError("Today's budget for proactive features is used up")
     class RateLimited(val retryAfterMs: Long?) : ModelError("Too many requests, try again later")
     class ContextTooLong : ModelError("The conversation exceeds the model's context length")
+    /** The provider caps tokens per request or per minute below this request (free tiers). [limit] when it says. */
+    class RequestTooLarge(val limit: Int?, val requested: Int?) :
+        ModelError("The request is larger than this provider allows" + (limit?.let { " ($it tokens)" } ?: ""))
     /**
      * 服务商那里没有这个模型(或地址不对,请求的接口不存在);[model] 是请求的模型名,不知道时为空。
      * [detail] 是服务端 JSON 报错里的原话(截短),没有为空:网关、中转服务还会用 404 说别的情况(比如它的上游模型这会儿都不可用),

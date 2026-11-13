@@ -988,6 +988,8 @@ class TaskRun(
                 profileSnapshot = profileSnapshot,
                 streamReplies = true,
                 chatFastPath = provenance.origin == RunOrigin.Ui && !conditionCheck,
+                requestLimit = FeatureFlags.get(service).requestLimit(model.name),
+                onRequestLimit = { limit -> FeatureFlags.get(service).setRequestLimit(model.name, limit) },
                 userScreens = userScreens,
                 // 同一网站、App 里连着联系别人、提交:两次之间隔一段随机的时间
                 outwardPacing = if (fastPace) OutwardPacing.Off else OutwardPacing.human(),

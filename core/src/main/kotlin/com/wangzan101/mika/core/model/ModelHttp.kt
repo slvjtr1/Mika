@@ -23,7 +23,7 @@ object ModelHttp {
 
     /** OpenAI 兼容接口(对话、转写同一套)的错误映射。[model] 是请求的模型名。 */
     fun openAiError(status: Int, retryAfter: String?, body: String, model: String): ModelError =
-        ModelAccessErrors.of(status, body, model) ?: reasoningEffortRejected(status, body) ?: when {
+        ModelAccessErrors.of(status, body, model) ?: reasoningEffortRejected(status, body) ?: requestTooLarge(status, body) ?: when {
             status == 401 -> ModelError.Auth()
             status == 402 || body.contains("insufficient_quota") -> ModelError.QuotaExceeded()
             status == 429 -> ModelError.RateLimited(HttpSupport.retryAfterMs(retryAfter, body))
@@ -33,6 +33,19 @@ object ModelHttp {
             status == 403 -> ModelError.Auth()
             else -> ModelError.BadResponse("HTTP $status ${body.take(200)}")
         }
+
+    /**
+     * "Request too large ... tokens per minute (TPM): Limit 8000, Requested 12931" (Groq and similar free tiers): the
+     * request itself is over the cap, so waiting does not help; a smaller request does.
+     */
+    fun requestTooLarge(status: Int, body: String): ModelError.RequestTooLarge? {
+        val lower = body.lowercase()
+        if (status !in setOf(400, 413, 429)) return null
+        if (!(lower.contains("request too large") || (status == 413 && lower.contains("token")))) return null
+        val limit = Regex("limit[^0-9]{0,12}(\\d{3,9})", RegexOption.IGNORE_CASE).find(body)?.groupValues?.get(1)?.toIntOrNull()
+        val requested = Regex("requested[^0-9]{0,12}(\\d{3,9})", RegexOption.IGNORE_CASE).find(body)?.groupValues?.get(1)?.toIntOrNull()
+        return ModelError.RequestTooLarge(limit, requested)
+    }
 
     /** HTTP 400 的报错说请求超出了模型的上下文(见 [saysContextTooLong])。OpenAI 兼容、Responses、Anthropic 三种接口共用;本机跑的服务三种接口都可能开。 */
     fun contextTooLong(status: Int, body: String): Boolean = status == 400 && saysContextTooLong(body)

@@ -86,7 +86,9 @@ class ScreenControl(private val context: Context, private val tasks: TaskCenterS
                 if (state is TaskState.Terminal || state is TaskState.Idle) userHasControl.value = false
                 val kind = when {
                     !active -> null
-                    real -> if (user) Kind.UserOnReal else Kind.Real
+                    // Only once the agent works on a screen (its display exists), not for a chat reply.
+                    real && shown != null -> if (user) Kind.UserOnReal else Kind.Real
+                    real -> null
                     covered && shown != null -> if (user) Kind.UserOnCovered else Kind.Covered
                     else -> null
                 }
@@ -136,6 +138,14 @@ class ScreenControl(private val context: Context, private val tasks: TaskCenterS
 
     private fun dp(v: Int) = (v * context.resources.displayMetrics.density).toInt()
 
+    /** Status bar height (covers the notch / camera cutout), in dp; the top controls sit below it. */
+    private val topInset: Int by lazy {
+        val r = context.resources
+        val id = r.getIdentifier("status_bar_height", "dimen", "android")
+        val px = if (id > 0) r.getDimensionPixelSize(id) else dp(32)
+        (px / r.displayMetrics.density).toInt().coerceAtLeast(24)
+    }
+
     private fun close() {
         window?.close()
         window = null
@@ -173,7 +183,7 @@ class ScreenControl(private val context: Context, private val tasks: TaskCenterS
             }
             Pill(
                 stringResource(if (userControl) R.string.screen_control_you else R.string.screen_control_locked),
-                Modifier.align(Alignment.TopCenter).padding(top = 34.dp),
+                Modifier.align(Alignment.TopCenter).padding(top = (topInset + 10).dp),
             )
             Column(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
@@ -194,8 +204,8 @@ class ScreenControl(private val context: Context, private val tasks: TaskCenterS
     private fun RealLock() {
         Box(Modifier.fillMaxSize().background(Color(0x14000000)).pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }) {
             Row(
-                Modifier.align(Alignment.TopCenter).padding(top = 2.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xCC000000))
-                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                Modifier.align(Alignment.TopCenter).padding(top = (topInset + 8).dp).clip(RoundedCornerShape(16.dp)).background(Color(0xCC000000))
+                    .padding(horizontal = 8.dp, vertical = 5.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically,
             ) {
                 BasicText(stringResource(R.string.screen_control_locked_short), style = TextStyle(color = Color.White, fontSize = 11.sp))
