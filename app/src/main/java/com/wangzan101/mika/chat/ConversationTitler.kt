@@ -36,6 +36,7 @@ object ConversationTitler {
         val said = page.words.ifBlank { page.page?.selection.orEmpty() }
         val words = UserScreenMessage.parse(said).words.take(MAX_INPUT)
         if (words.isBlank()) return null
+        if (words.trim().length <= LOCAL_TITLE_CHARS && '\n' !in words.trim()) return words.trim()
         val input = "<message>\n" + words.replace(TAG, "") + "\n</message>"
         val messages = listOf(Message(Role.User, listOf(Part.Text(input)), Author.User))
         for (m in models.distinct()) {
@@ -65,4 +66,6 @@ object ConversationTitler {
         t = t.trim { it in WRAP || it.isWhitespace() }.trimEnd { it in TAIL }.trim { it in WRAP || it.isWhitespace() }
         return t.take(MAX_TITLE).takeIf(String::isNotBlank)
     }
+    /** A first message this short is its own title. */
+    private const val LOCAL_TITLE_CHARS = 40
 }

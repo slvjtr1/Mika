@@ -13,7 +13,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-internal const val KNOWLEDGE_BODY_LIMIT = 2_000
+internal const val KNOWLEDGE_BODY_LIMIT = 1_200
 internal const val KNOWLEDGE_TRUNCATED_HINT = "…(truncated; use knowledge_read for the full text)"
 
 internal fun clipBody(body: String, limit: Int, hint: String): String =
@@ -65,11 +65,11 @@ enum class ContextKind(val wire: String, val layer: ContextLayer, val trust: Tru
  * 和原来按字数的额度比,英文能放的字多了约一倍,中文少了约三分之一;自带的 App/网站知识正文(APP.md、SITE.md)单份都在 [KNOWLEDGE_BODY_LIMIT] 以内。
  */
 data class ContextBudget(
-    val total: Int = 8_000,
-    val layers: Map<ContextLayer, Int> = mapOf(ContextLayer.Task to 4_000, ContextLayer.Knowledge to 5_000),
+    val total: Int = 5_500,
+    val layers: Map<ContextLayer, Int> = mapOf(ContextLayer.Task to 3_000, ContextLayer.Knowledge to 2_800),
     val knowledgeItem: Int = KNOWLEDGE_BODY_LIMIT,
     /** 每任务至多注入几份 App/站点参考资料(开局与中途合计)。 */
-    val maxKnowledge: Int = 3,
+    val maxKnowledge: Int = 2,
     /** 裁到不足这么多 token 的正文不值得给,整份不给。 */
     val minKeep: Int = 150,
 )

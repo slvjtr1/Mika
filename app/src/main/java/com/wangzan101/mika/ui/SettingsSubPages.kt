@@ -270,6 +270,7 @@ fun DuringWorkScreen(
     selfOperate: Boolean = false, onSelfOperate: (Boolean) -> Unit = {},
     pipOperate: Boolean = false, onPipOperate: (Boolean) -> Unit = {},
     controlInScreen: Boolean = false, onControlInScreen: (Boolean) -> Unit = {},
+    controlMainScreen: Boolean = false, onControlMainScreen: (Boolean) -> Unit = {},
     externalSchedule: Boolean = false, onExternalSchedule: (Boolean) -> Unit = {},
     stepLimit: Int? = null, onStepLimit: (Int?) -> Unit = {},
     tokenBudget: Long? = null, onTokenBudget: (Long?) -> Unit = {},
@@ -379,6 +380,46 @@ fun DuringWorkScreen(
                 stringResource(R.string.settings_control_screen), selected = controlInScreen,
                 onClick = { onControlInScreen(true) }, subtitle = stringResource(R.string.settings_control_screen_detail), first = false,
             )
+        }
+        var mainScreenWarning by remember { mutableStateOf(false) }
+        GroupCard {
+            ListRow(
+                MikaIcons.Screens, stringResource(R.string.settings_control_main),
+                stringResource(R.string.settings_control_main_sub),
+                first = true,
+                onClick = { if (controlMainScreen) onControlMainScreen(false) else mainScreenWarning = true },
+            ) {
+                MikaSwitch(controlMainScreen, { on -> if (on) mainScreenWarning = true else onControlMainScreen(false) }, Modifier.testTag("work-control-main"))
+            }
+        }
+        if (mainScreenWarning) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { mainScreenWarning = false },
+                title = { androidx.compose.material3.Text(stringResource(R.string.settings_control_main_warn_title)) },
+                text = { androidx.compose.material3.Text(stringResource(R.string.settings_control_main_warn)) },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = { mainScreenWarning = false; onControlMainScreen(true) }) {
+                        androidx.compose.material3.Text(stringResource(R.string.settings_control_main_enable))
+                    }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { mainScreenWarning = false }) {
+                        androidx.compose.material3.Text(stringResource(android.R.string.cancel))
+                    }
+                },
+            )
+        }
+        val assistContext = androidx.compose.ui.platform.LocalContext.current
+        GroupCard {
+            ListRow(
+                MikaIcons.Screens, stringResource(R.string.settings_assistant),
+                stringResource(R.string.settings_assistant_sub),
+                first = true,
+                onClick = {
+                    runCatching { assistContext.startActivity(android.content.Intent(android.provider.Settings.ACTION_VOICE_INPUT_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                        .recoverCatching { assistContext.startActivity(android.content.Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                },
+            ) {}
         }
         GroupLabel(stringResource(R.string.settings_pace))
         GroupCard {

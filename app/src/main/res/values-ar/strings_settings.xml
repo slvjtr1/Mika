@@ -245,4 +245,18 @@
     <string name="settings_control_screen_detail">Mika يسيطر على الشاشة كاملة وهو يشتغل: تشوف كل خطوة مباشرة، اللمس مقفل، وما يستجيب إلا زر STOP تحت.</string>
     <string name="screen_control_stop">STOP</string>
     <string name="screen_control_locked">Mika يتحكم الآن · اللمس مقفل</string>
+    <string name="screen_control_take">خذ التحكم</string>
+    <string name="screen_control_leave">اترك التحكم</string>
+    <string name="screen_control_you">أنت المتحكم الآن · Mika متوقف مؤقتاً</string>
+    <string name="screen_control_locked_short">Mika يتحكم</string>
+    <string name="settings_control_main">التحكم بشاشتي الحقيقية (تجريبي)</string>
+    <string name="settings_control_main_sub">Mika يشتغل مباشرة على شاشة جوالك بدل شاشته المخفية. اللمس مقفل وهو يشتغل، وأزرار خذ التحكم وSTOP فوق.</string>
+    <string name="settings_control_main_warn_title">ميزة تجريبية</string>
+    <string name="settings_control_main_warn">Mika بيضغط ويكتب على شاشتك الحقيقية. هذا الوضع تجريبي وممكن ما يشتغل على كل الجوالات: بعض التطبيقات تتصرف بشكل مختلف، والتطبيقات بالوضع الأفقي ممكن تنقرأ غلط، وما تقدر تستخدم الجوال وهو يشتغل. اضغط STOP بأي وقت، ولو صار شي غلط طفّه.</string>
+    <string name="settings_control_main_enable">تشغيل</string>
+    <string name="settings_assistant">مساعد زر الباور</string>
+    <string name="settings_assistant_sub">اختر Mika كتطبيق المساعد الرقمي، وبعدها اضغط مطولاً على زر الباور عشان تكلم Mika من أي مكان.</string>
+    <string name="assist_title">وش تبي Mika يسوي؟</string>
+    <string name="assist_listening">أسمعك…</string>
+    <string name="assist_hint">اسأل أو اطلب من Mika…</string>
 </resources>

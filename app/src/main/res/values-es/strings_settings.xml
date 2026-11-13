@@ -230,4 +230,18 @@
     <string name="settings_control_screen_detail">Mika takes over the whole screen while it works: you watch every step live, touch is locked, and only the STOP button at the bottom responds.</string>
     <string name="screen_control_stop">STOP</string>
     <string name="screen_control_locked">Mika is in control · touch is locked</string>
+    <string name="screen_control_take">Take control</string>
+    <string name="screen_control_leave">Leave control</string>
+    <string name="screen_control_you">You are in control · Mika is paused</string>
+    <string name="screen_control_locked_short">Mika in control</string>
+    <string name="settings_control_main">Drive my real screen (experimental)</string>
+    <string name="settings_control_main_sub">Mika works directly on your phone\'s screen instead of its own hidden screen. Touch is locked while it works; Take control and STOP stay at the top.</string>
+    <string name="settings_control_main_warn_title">Experimental feature</string>
+    <string name="settings_control_main_warn">Mika will tap and type on your real screen. This mode is experimental and may not work on every phone: apps can behave differently, landscape apps may be read wrongly, and you cannot use the phone while Mika works. Press STOP at any time. If something goes wrong, turn this off.</string>
+    <string name="settings_control_main_enable">Turn on</string>
+    <string name="settings_assistant">Power button assistant</string>
+    <string name="settings_assistant_sub">Choose Mika as the digital assistant app; then long-press the power or side button to talk to Mika from anywhere.</string>
+    <string name="assist_title">What should Mika do?</string>
+    <string name="assist_listening">Listening…</string>
+    <string name="assist_hint">Ask or tell Mika…</string>
 </resources>

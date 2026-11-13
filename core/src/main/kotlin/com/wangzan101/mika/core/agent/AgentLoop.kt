@@ -39,6 +39,7 @@ import com.wangzan101.mika.core.model.ModelError
 import com.wangzan101.mika.core.model.ModelReply
 import com.wangzan101.mika.core.model.Part
 import com.wangzan101.mika.core.model.Role
+import com.wangzan101.mika.core.model.StreamingChatModel
 import com.wangzan101.mika.core.model.StopReason
 import com.wangzan101.mika.core.model.ToolSpec
 import com.wangzan101.mika.core.proactive.ObservedContext
@@ -177,6 +178,8 @@ class AgentLoop(
     private val observed: String? = null,
     /** 交互界面开启可见文字流；评测和后台调用保持原请求格式。 */
     private val streamReplies: Boolean = false,
+    /** Try plain chat first (see [ChatFastPath]): short messages that need no tools cost a few hundred tokens. */
+    private val chatFastPath: Boolean = false,
     /** 这个对话里用户发来的屏幕(见 [UserScreenTurns]);没有时带屏幕的那一行原样给模型。 */
     private val userScreens: UserScreenSource? = null,
     /** 评测可保留旧收尾核查；交互产品由执行过程观察结果，收尾只整理来源。 */
@@ -223,6 +226,10 @@ class AgentLoop(
     @Volatile private var usedMemory: List<String> = emptyList()
     /** 本次任务记忆块里列出的条目编号;任务结束后读取。 */
     val usedMemoryIds: List<String> get() = usedMemory
+
+    /** This run was answered in chat mode ([ChatFastPath]): nothing was read or done, so there is nothing to judge or learn. */
+    @Volatile var answeredAsChat: Boolean = false
+        private set
 
     /** 这次任务开工时带没带「从通知里得来的」那一段;任务结束后读取(带了就不自动提取记忆,不靠读运行记录也知道)。 */
     val carriedObserved: Boolean get() = observed != null
@@ -327,6 +334,36 @@ class AgentLoop(
         return end
     }
 
+    /**
+     * One small request: a few lines of instructions, the last turns in short, the message; no tools. Returns null
+     * (run the full agent) when the model says the message needs it, or when the request fails.
+     */
+    private suspend fun chatOnly(task: String, priorTurns: List<Turn>): TaskState? {
+        val messages = listOfNotNull(Conversation.context(priorTurns, maxTurns = 4, maxTokens = 600)) +
+            Message(Role.User, listOf(Part.Text(task)), Author.User)
+        val onText: (String) -> Unit = { raw ->
+            if (streamReplies && raw.isNotBlank() && !raw.trimStart().startsWith("[")) {
+                val cur = _state.value as? TaskState.Running
+                _state.value = cur?.copy(preview = raw) ?: TaskState.Running(1, "", preview = raw)
+            }
+        }
+        val reply = try {
+            val m = model
+            if (m is StreamingChatModel) m.completeStreaming(ChatFastPath.PROMPT, messages, emptyList(), onText)
+            else m.complete(ChatFastPath.PROMPT, messages, emptyList())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            return null
+        }
+        val text = reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.trim()
+        if (text.isEmpty() || ChatFastPath.wantsTask(text)) {
+            (_state.value as? TaskState.Running)?.let { if (it.preview != null) _state.value = it.copy(preview = null) }
+            return null
+        }
+        return TaskState.Succeeded(text, verified = false, reviewed = false)
+    }
+
     /** 写操作前过 [gate]:挂起期间对外显示等待原因,结束后恢复 [gateState]。 */
     private suspend fun awaitGate() {
         try {
@@ -379,6 +416,10 @@ class AgentLoop(
         taskText = task
         latestWords = ownWords(raw, opening)
         val priorTurns = shots.collapse(rawPrior)
+        answeredAsChat = false
+        if (chatFastPath && opening == null && ChatFastPath.candidate(raw)) {
+            chatOnly(task, priorTurns)?.let { answeredAsChat = true; return it }
+        }
         // 通知提醒那一轮没有用户的话,不算进「之前几轮用户说的话」
         earlierGoals = priorTurns.filterNot(NoticeTurn::isNotice).map { it.userText }
         // 之前的轮次只作参考,放在本次任务之前

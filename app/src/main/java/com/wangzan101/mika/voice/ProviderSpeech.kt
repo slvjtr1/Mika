@@ -60,7 +60,8 @@ class ProviderSpeech(
                 return@launch
             }
             out.send(SpeechEvent.Converting)
-            val wav = Wav.encode(pcm)
+            // Only the speech is sent: audio is billed by length
+            val wav = Wav.encode(SilenceTrim.trim(pcm))
             // 连接一直不回(客户端只有很长的读超时、没有整体超时):到点就不等了。
             // 出错在超时块里面就接住,原样的错误交出去(不跨协程边界,不会被换成拷贝)
             val result = withTimeoutOrNull(timeoutMs) {

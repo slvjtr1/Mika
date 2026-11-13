@@ -116,6 +116,17 @@ class ShellService(
         }
     }
 
+    override fun createMirrorDisplay(surface: Surface, width: Int, height: Int, dpi: Int): Int = try {
+        val vd = displayManager.createVirtualDisplay("mika-mirror", width, height, dpi, surface,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR)
+        val id = vd.display.displayId
+        synchronized(displays) { displays[id] = vd }
+        id
+    } catch (t: Throwable) {
+        Log.e(TAG, "createMirrorDisplay failed", t)
+        -1
+    }
+
     private fun createVirtualDisplay(surface: Surface, width: Int, height: Int, dpi: Int, trusted: Boolean): Int {
         val flags = displayFlags(Build.VERSION.SDK_INT, trusted)
         val vd = displayManager.createVirtualDisplay("mika-agent", width, height, dpi, surface, flags)

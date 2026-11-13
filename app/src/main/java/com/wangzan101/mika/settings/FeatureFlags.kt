@@ -205,6 +205,15 @@ class FeatureFlags(private val prefs: SharedPreferences) {
 
     fun controlInScreenChanges(): Flow<Boolean> = booleanChanges(CONTROL_IN_SCREEN, ::controlInScreen)
 
+    /** Experimental: the agent operates the real screen instead of its own display. Off by default. */
+    fun controlMainScreen(): Boolean = prefs.getBoolean(CONTROL_MAIN_SCREEN, false)
+
+    fun controlMainScreenChanges(): Flow<Boolean> = booleanChanges(CONTROL_MAIN_SCREEN, ::controlMainScreen)
+
+    fun setControlMainScreen(on: Boolean) {
+        prefs.edit().putBoolean(CONTROL_MAIN_SCREEN, on).commit()
+    }
+
     fun setControlInScreen(on: Boolean) {
         prefs.edit().putBoolean(CONTROL_IN_SCREEN, on).commit()
     }
@@ -393,6 +402,7 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         private const val SELF_OPERATE = "self_operate"
         private const val PIP_OPERATE = "pip_operate"
         private const val CONTROL_IN_SCREEN = "control_in_screen"
+        private const val CONTROL_MAIN_SCREEN = "control_main_screen"
         private const val EXTERNAL_SCHEDULE = "external_schedule"
         private const val PROACTIVE = "proactive"
         private const val THEME_MODE = "theme_mode"

@@ -634,7 +634,8 @@ class TaskRun(
                 side.launch { conn.shell.map { it != null }.collect { shellUp.value = it } }
                 val agentDisplay = LazyAgentDisplay(metrics.widthPixels, metrics.heightPixels) {
                     suspend fun create() = resources.acquire(Dispatchers.IO, AgentDisplay::release) { AgentDisplay(shell, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi, service.getSystemService(DisplayManager::class.java),
-                        previewShortSide = if (FeatureFlags.get(service).controlInScreen()) 720 else 360) }
+                        previewShortSide = if (FeatureFlags.get(service).controlInScreen()) 720 else 360,
+                        mirrorMain = FeatureFlags.get(service).controlMainScreen()) }
                     try {
                         create()
                     } catch (e: Exception) {
@@ -986,6 +987,7 @@ class TaskRun(
                 interaction = service.interaction(conversationId, channelPeer),
                 profileSnapshot = profileSnapshot,
                 streamReplies = true,
+                chatFastPath = provenance.origin == RunOrigin.Ui && !conditionCheck,
                 userScreens = userScreens,
                 // 同一网站、App 里连着联系别人、提交:两次之间隔一段随机的时间
                 outwardPacing = if (fastPace) OutwardPacing.Off else OutwardPacing.human(),
@@ -1283,6 +1285,9 @@ class TaskRun(
      * 用户在浏览器页上亲手摸了借给这个任务的页面:正在干活时马上显示暂停,下一个会改动屏幕的工具之前停下,
      * 用户点「继续」再接着做(见 [TaskGate.onUserOnPage])。等用户回答、接管中等别的状态不动。主线程。
      */
+    /** Take control: the agent stops before its next step on the screen until the user lets it continue. Main thread. */
+    fun takeControl() = userOnPage()
+
     private fun userOnPage() {
         if (_state.value !is TaskState.Running) return
         val g = gate ?: return
@@ -1354,6 +1359,7 @@ class TaskRun(
     suspend fun settleOutcome(end: TaskState, conversations: ConversationStore): JudgedOutcome? {
         val k = kit ?: return null
         if (end !is TaskState.Succeeded) return null
+        if (k.agent.answeredAsChat) return null
         val judged = OutcomeJudge(k.light ?: k.model, k.model).judge(k.agent.taskText ?: goal, end.answer, k.priorTurns)
         val runId = _runId.value
         if (runId != null) withContext(Dispatchers.IO) {
@@ -1380,6 +1386,7 @@ class TaskRun(
     suspend fun learnAfter(end: TaskState, outcome: RunOutcome?, conversations: ConversationStore) {
         rememberTask()
         val k = kit ?: return
+        if (k.agent.answeredAsChat) return
         val runId = _runId.value
         val learning = RunLearning(
             k.switches, k.memory, memoryRuntime.skills(), k.catalog,

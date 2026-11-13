@@ -29,12 +29,18 @@ class AgentDisplay(
     private val displayManager: DisplayManager,
     /** Short side of the live preview frames, in pixels. */
     private val previewShortSide: Int = PREVIEW_SHORT_SIDE,
+    /** Experimental: operate the real screen (display 0); frames come from a mirror of it. */
+    mirrorMain: Boolean = false,
 ) {
     private val thread = HandlerThread("agent-display").apply { start() }
     private val handler = Handler(thread.looper)
     private val reader = ImageReader.newInstance(bufferWidth, bufferHeight, PixelFormat.RGBA_8888, 2)
 
     val displayId: Int
+    /** The display this object created (the mirror in real-screen mode), released at the end. */
+    private val ownId: Int
+    /** Real-screen mode is in effect (the mirror could be made). */
+    val onMainScreen: Boolean
 
     // ImageReader 始终是建屏时的物理尺寸;应用的逻辑坐标随虚拟屏旋转,与主屏的方向无关。
     private val geometry get() = DisplayFrameGeometry(bufferWidth, bufferHeight,
@@ -65,7 +71,10 @@ class AgentDisplay(
     }
 
     init {
-        val id = try {
+        // An older helper has no mirror call: fall back to the agent's own display.
+        val mirror = if (mirrorMain) runCatching { shell.createMirrorDisplay(reader.surface, bufferWidth, bufferHeight, dpi) }.getOrDefault(-1) else -1
+        onMainScreen = mirror >= 0
+        val id = if (mirror >= 0) mirror else try {
             shell.createDisplay(reader.surface, bufferWidth, bufferHeight, dpi)
         } catch (t: Throwable) {
             closeLocal()
@@ -75,7 +84,8 @@ class AgentDisplay(
             closeLocal()
             throw IllegalStateException("createDisplay failed")
         }
-        displayId = id
+        ownId = id
+        displayId = if (onMainScreen) android.view.Display.DEFAULT_DISPLAY else id
         reader.setOnImageAvailableListener({ schedule() }, handler)
         // 建屏期间可能已经有帧排进来;先有正确的屏号,再处理这些帧。
         handler.post { schedule() }
@@ -144,7 +154,7 @@ class AgentDisplay(
     fun release() {
         if (released) return
         released = true
-        runCatching { shell.releaseDisplay(displayId) }
+        runCatching { shell.releaseDisplay(ownId) }
         closeLocal()
         _frames.value = null
     }

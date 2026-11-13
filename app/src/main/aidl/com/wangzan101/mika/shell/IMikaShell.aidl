@@ -132,6 +132,9 @@ interface IMikaShell {
     boolean flushCallAudio(IBinder owner) = 55;
     Bundle callAudioStats(IBinder owner) = 56;
 
+    // Mirror of the default display into [surface]; returns its id (release with releaseDisplay), -1 on failure.
+    int createMirrorDisplay(in Surface surface, int width, int height, int dpi) = 57;
+
     // 沿用早先定下的销毁事务号;AIDL 要求要么全部方法编号要么都不编号
     void destroy() = 16777114;
 }

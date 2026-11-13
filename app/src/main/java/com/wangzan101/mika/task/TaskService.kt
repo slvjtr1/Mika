@@ -289,6 +289,7 @@ class TaskService : Service() {
                 ?.let { r -> if (center.cancelIfQueued(r)) cancelQueued(r) else r.cancel() }
             ACTION_CANCEL -> if (run != null && center.cancelIfQueued(run)) cancelQueued(run) else run?.cancel()
             ACTION_RESUME -> run?.resume()
+            ACTION_TAKE_CONTROL -> run?.takeControl()
             ACTION_TAKE_OVER -> run?.takeOver(waitKeyOf(intent))
             ACTION_HAND_BACK -> run?.handBack(waitKeyOf(intent))
             ACTION_FINISHED_MYSELF -> run?.finishedMyself(waitKeyOf(intent))
@@ -998,6 +999,7 @@ class TaskService : Service() {
         const val ACTION_CANCEL_MCP = "com.wangzan101.mika.task.CANCEL_MCP"
         const val ACTION_CANCEL = "com.wangzan101.mika.task.CANCEL"
         const val ACTION_RESUME = "com.wangzan101.mika.task.RESUME"
+        const val ACTION_TAKE_CONTROL = "com.wangzan101.mika.task.TAKE_CONTROL"
         const val ACTION_TAKE_OVER = "com.wangzan101.mika.task.TAKE_OVER"
         const val ACTION_HAND_BACK = "com.wangzan101.mika.task.HAND_BACK"
         const val ACTION_FINISHED_MYSELF = "com.wangzan101.mika.task.FINISHED_MYSELF"
@@ -1146,6 +1148,7 @@ class TaskService : Service() {
 
         /** 用户点了「继续」:被挪走的 App 会被挪回 Mika 的屏幕。 */
         fun resume(context: Context, runKey: String? = null) = send(context, ACTION_RESUME, runKey = runKey)
+        fun takeControl(context: Context, runKey: String? = null) = send(context, ACTION_TAKE_CONTROL, runKey = runKey)
 
         /** 「我来处理」:把 App 挪到主屏并恢复它的声音。 */
         fun takeOver(context: Context, waitKey: Int? = null, runKey: String? = null) = send(context, ACTION_TAKE_OVER, waitKey, runKey)
