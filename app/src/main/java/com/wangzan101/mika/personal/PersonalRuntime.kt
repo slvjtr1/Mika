@@ -41,7 +41,7 @@ class FilePersonalStore(file: File) : PersonalStore {
                 // Preserve the corrupt input for recovery, never silently overwrite the only copy.
                 file.copyTo(File(file.path + ".unreadable-" + System.currentTimeMillis()), overwrite = false)
                 PersonalState(messages = listOf(PersonalMessage(UUID.randomUUID().toString(), "assistant",
-                    "历史记录暂时无法读取，原文件已保留备份。可以继续聊；请保留备份以便恢复。", System.currentTimeMillis(), error = true, systemType = "history_unreadable")))
+                    "The history can't be read right now; the original file has been backed up. You can keep chatting; keep the backup so it can be restored.", System.currentTimeMillis(), error = true, systemType = "history_unreadable")))
             }
     )
     override val state = _state.asStateFlow()
@@ -74,25 +74,25 @@ class PersonalRuntime(private val app: MikaApp) {
             TaskService.start(app, goal, conversationId)
         }
         override fun revise(conversationId: String, instruction: String): String {
-            val run = app.taskState.run(conversationId) ?: error("任务还未就绪或已经结束，请先查看任务详情。")
-            require(run.state.value !is TaskState.Terminal) { "任务已结束，请明确交代新的任务。" }
+            val run = app.taskState.run(conversationId) ?: error("The task isn't ready yet or has already ended. Check the task details first.")
+            require(run.state.value !is TaskState.Terminal) { "The task has ended. Please give a new task explicitly." }
             run.steer(instruction)
-            return "补充已交给原任务。"
+            return "The addition was passed to the original task."
         }
         override fun cancel(conversationId: String): String {
             val run = app.taskState.run(conversationId) ?: throw PersonalSystemException("stop_not_ready", "任务还未就绪或已经结束，请查看任务详情。")
             TaskService.cancel(app, run.key)
-            return "已请求停止，等待执行服务交代当前进展。"
+            return "Stop requested; waiting for the task to report its progress."
         }
         override fun remember(text: String, quote: String): String {
-            require(app.memory.settings().switches.value.useMemory) { "记忆已关闭，可在记忆与技能里开启。" }
-            require(Regex("记住|记一下|记下来|别忘|remember", RegexOption.IGNORE_CASE).containsMatchIn(quote)) { "只有明确要求记住的内容才会存入长期记忆。" }
+            require(app.memory.settings().switches.value.useMemory) { "Memory is turned off; turn it on in Memory & skills." }
+            require(Regex("记住|记一下|记下来|别忘|remember", RegexOption.IGNORE_CASE).containsMatchIn(quote)) { "Only things explicitly asked to be remembered are saved to long-term memory." }
             val source = MemorySource("user_said", quote.take(4000), "personal-main", System.currentTimeMillis())
             val result = app.memory.store().add(MemoryKind.preference, text, emptyList(), source).getOrThrow()
-            return "已保存：" + result.item.content
+            return "Saved: " + result.item.content
         }
         override fun memory(): String {
-            if (!app.memory.settings().switches.value.useMemory) return "用户关闭了长期记忆。"
+            if (!app.memory.settings().switches.value.useMemory) return "The user has turned off long-term memory."
             return personalMemoryText(app.memory.store().items.value)
         }
     }
@@ -185,11 +185,11 @@ class PersonalRuntime(private val app: MikaApp) {
                     is TaskState.WaitingTakeover -> "needs_you" to current.message
                     is TaskState.Held -> (if (current.reason.queued) "queued" else "paused") to current.reason.why
                     is TaskState.Terminal -> "finishing" to "正在保存结果"
-                    else -> "queued" to "等待开始"
+                    else -> "queued" to "Waiting to start"
                 }
                 val persisted = app.runStore.all().lastOrNull { it.threadId == task.conversationId }
                 if (run == null && persisted?.phase == RunPhase.Interrupted) {
-                    agent.updateTask(task.id, "failed", result = "上次运行中断了。已保留聊天与任务记录，你可以重新交代这件事。", resultSystemType = "task_interrupted")
+                    agent.updateTask(task.id, "failed", result = "The last run was interrupted. The chat and task records are kept; you can ask for this again.", resultSystemType = "task_interrupted")
                 } else if (run == null && persisted?.phase == RunPhase.Ended && persisted.reply != null) {
                     agent.updateTask(task.id, if (persisted.runSucceeded == true) "completed" else "failed", result = persisted.reply)
                 } else agent.updateTask(task.id, pair.first, pair.second, detailSystemType = when (current) {
@@ -220,6 +220,6 @@ internal fun personalMemoryText(items: List<MemoryItem>, max: Int = PERSONAL_MEM
     return out.toString()
 }
 
-internal const val PERSONAL_INFERRED_MARK = "(Mika 自己归纳的,不是用户说的)"
+internal const val PERSONAL_INFERRED_MARK = "(summarized by Mika, not said by the user)"
 private const val PERSONAL_MEMORY_ITEMS = 40
 private const val PERSONAL_MEMORY_CHARS = 6500

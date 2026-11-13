@@ -40,6 +40,6 @@ fun personalStopErrorText(context: Context, error: Throwable): String =
 fun PersonalMessage.displayText(context: Context): String = personalSystemText(context, systemType, text)
 fun PersonalTask.displayDetail(context: Context): String =
     if (detailSystemType == "task_amendment" && detail.startsWith("补充：")) {
-        context.getString(R.string.personal_system_task_amendment, detail.removePrefix("补充："))
+        context.getString(R.string.personal_system_task_amendment, detail.removePrefix("补充：").removePrefix("Addition: "))
     } else personalSystemText(context, detailSystemType, detail)
 fun PersonalTask.displayResult(context: Context): String? = result?.let { personalSystemText(context, resultSystemType, it) }

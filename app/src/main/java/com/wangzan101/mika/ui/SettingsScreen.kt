@@ -128,6 +128,7 @@ fun SettingsScreen(
     var selfConfig by remember { mutableStateOf(flags.selfConfig()) }
     var selfOperate by remember { mutableStateOf(flags.selfOperate()) }
     var pipOperate by remember { mutableStateOf(flags.pipOperate()) }
+    var controlInScreen by remember { mutableStateOf(flags.controlInScreen()) }
     var externalSchedule by remember { mutableStateOf(flags.externalSchedule()) }
     var autoArchiveDays by remember { mutableStateOf(flags.autoArchiveDays()) }
     var editingAutoArchive by remember { mutableStateOf(false) }
@@ -239,6 +240,7 @@ fun SettingsScreen(
             selfConfig = selfConfig, onSelfConfig = { flags.setSelfConfig(it); selfConfig = it },
             selfOperate = selfOperate, onSelfOperate = { flags.setSelfOperate(it); selfOperate = it },
             pipOperate = pipOperate, onPipOperate = { flags.setPipOperate(it); pipOperate = it },
+            controlInScreen = controlInScreen, onControlInScreen = { flags.setControlInScreen(it); controlInScreen = it },
             externalSchedule = externalSchedule, onExternalSchedule = { flags.setExternalSchedule(it); externalSchedule = it },
         )
         SettingsPage.Language -> LanguageScreen(language, onLanguage = { AppLanguage.set(context, it) }, onBack = toHome)

@@ -182,6 +182,8 @@ fun ChatScreen(
     pipSoundOn: StateFlow<Boolean> = MutableStateFlow(false),
     /** 用户在设置里开了「允许我在小窗里直接操作」。 */
     pipOperateEnabled: Boolean = false,
+    /** Settings › Control mode is "Control in screen": show the agent's live screen full size while it works. */
+    controlInScreen: Boolean = false,
     reduceMotion: Boolean,
     /** 左上角菜单:打开侧栏。 */
     onOpenDrawer: () -> Unit,
@@ -231,6 +233,12 @@ fun ChatScreen(
         }
     }
     val frame = live ?: lastFrame.takeIf { ui.pip.visible && ui.pip.mode == PipMode.Done }
+    // Control in screen: open the live view full size whenever a task starts or resumes running.
+    // Keyed on the mode, so if you shrink it yourself it stays small until the task state changes.
+    LaunchedEffect(controlInScreen, ui.pip.visible, ui.pip.mode) {
+        val pip = ui.pip
+        if (controlInScreen && pip.visible && !pip.closed && !pip.expanded && pip.mode == PipMode.Running) vm.expandPip()
+    }
     val webContent = if (ui.pip.mode == PipMode.Done) lastFrameWasWeb else webLive
     // 注册文字的 Android 状态保存;平时由进程内的 ViewModel 管理完整会话草稿。
     rememberSaveable(vm, saver = androidx.compose.runtime.saveable.listSaver(
@@ -496,6 +504,7 @@ fun ChatScreen(
             pipInput = pipInputLive,
             soundOn = pipSoundOn.collectAsState().value,
             operateEnabled = pipOperateEnabled,
+            screenMode = controlInScreen,
             reduceMotion = reduceMotion,
             topInset = topHeight.toFloat(),
             bottomInset = composerHeight.toFloat(),

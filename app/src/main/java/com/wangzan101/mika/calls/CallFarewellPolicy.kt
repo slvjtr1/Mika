@@ -2,15 +2,15 @@ package com.wangzan101.mika.calls
 
 /** Accepts only an unambiguous closing from a caller's final utterance. No transcript is retained. */
 internal object CallFarewellPolicy {
-    private const val THANKS = "谢谢(?:你|您)?(?:啊|了)?|多谢|辛苦了"
-    private const val COURTESY = "好(?:的|吧|啊)?|行(?:吧|啊)?|嗯{1,3}|那(?:好吧?)?|$THANKS"
-    private const val CLOSING_CONTEXT = "(?:那)?就(?:先)?这样吧|(?:我这边|我)?没(?:有)?别的事了|不打扰了|(?:改天|回头)再聊"
-    private const val GOODBYE = "(?:再见|拜拜)(?:啊|啦|了)?"
+    private const val THANKS = "谢谢(?:你|您)?(?:啊|了)?|多谢|辛苦了|thank(?:s|you)(?:somuch|verymuch|alot)?|cheers"
+    private const val COURTESY = "好(?:的|吧|啊)?|行(?:吧|啊)?|嗯{1,3}|那(?:好吧?)?|ok(?:ay)?|alright|allright|sure|great|perfect|(?:sounds)?good|$THANKS"
+    private const val CLOSING_CONTEXT = "(?:那)?就(?:先)?这样吧|(?:我这边|我)?没(?:有)?别的事了|不打扰了|(?:改天|回头)再聊|(?:so|ok(?:ay)?)?that(?:is|s)?(?:all|it)(?:fornow)?|nothingelse|talk(?:to(?:you)?)?(?:soon|later)"
+    private const val GOODBYE = "(?:再见|拜拜)(?:啊|啦|了)?|(?:good)?bye(?:bye|now|fornow)?|seeyou(?:later|soon)?|takecare|have(?:a)?(?:good|nice|great)(?:day|one|evening|night)"
     private const val SELF_HANGUP = "(?:我(?:们|这边)?)(?:就)?(?:先)?挂(?:断)?(?:电话)?了(?:啊|啦|吧)?"
     private const val REQUEST_HANGUP = "(?:(?:麻烦|请)(?:你|您)?(?:帮我)?(?:先)?(?:挂断(?:电话)?(?:吧|了|一下)?|挂(?:一下)?电话(?:吧|了)?)|" +
         "(?:你|您)(?:可以|先)?挂(?:断)?(?:电话)?(?:了|吧|了吧)|" +
         "(?:可以|请)(?:直接)?结束(?:这次)?通话(?:了|吧)?|" +
-        "(?:可以|请)(?:直接)?挂断(?:电话)?(?:了|吧)?|挂(?:断)?电话吧|挂断吧|可以挂了)"
+        "(?:可以|请)(?:直接)?挂断(?:电话)?(?:了|吧)?|挂(?:断)?电话吧|挂断吧|可以挂了|(?:please)?(?:you)?(?:can|may)?(?:please)?(?:hangup|endthecall)(?:now)?|i(?:will|ll)?(?:hangup|letyougo)(?:now)?)"
 
     private val splitClause = Regex("[,，、。.!！；;]+")
     private val spaces = Regex("[ \\t\\r\\n　]+")
@@ -26,11 +26,17 @@ internal object CallFarewellPolicy {
 
     private val settledEnding = Regex(
         "(?:那|好|行)?(?:我们)?(?:就(?:先)?这样|先这样|(?:就|先)(?:到这里|聊到这里|说到这里))(?:吧|了)?|" +
-            "(?:那)?(?:我)?(?:就)?(?:先)?不打扰(?:您|你)?了|祝您(?:顺利|生活愉快)",
+            "(?:那)?(?:我)?(?:就)?(?:先)?不打扰(?:您|你)?了|祝您(?:顺利|生活愉快)|" +
+            "(?:ok(?:ay)?|so|alright)?(?:good)?bye(?:fornow|now)?|(?:so|ok(?:ay)?)?that(?:is|s)?all(?:fornow)?|have(?:a)?(?:good|nice|great)(?:day|one|evening)",
     )
 
     /** A natural closing sentence, never a lone acknowledgement, a question or quoted words. */
-    fun isAssistantClosing(text: String): Boolean {
+    private val wordApostrophe = Regex("(?<=[A-Za-z])['’](?=[A-Za-z])")
+
+    private fun fold(text: String): String = text.replace(wordApostrophe, "").lowercase()
+
+    fun isAssistantClosing(raw: String): Boolean {
+        val text = fold(raw)
         if (isExplicitCallerFarewell(text)) return true
         if (text.length !in 1..180 || text.any { it in quoteOrQuestion }) return false
         val normalized = text.replace(spaces, "")
@@ -39,7 +45,8 @@ internal object CallFarewellPolicy {
         return settledEnding.matches(ending)
     }
 
-    fun isExplicitCallerFarewell(text: String): Boolean {
+    fun isExplicitCallerFarewell(raw: String): Boolean {
+        val text = fold(raw)
         if (text.length !in 1..100 || text.any { it in quoteOrQuestion }) return false
         val clauses = text.split(splitClause).map { it.replace(spaces, "") }.filter(String::isNotEmpty)
         if (clauses.size !in 1..8) return false

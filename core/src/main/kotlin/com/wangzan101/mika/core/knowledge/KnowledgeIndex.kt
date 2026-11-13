@@ -38,8 +38,8 @@ data class IndexEntry(
  */
 object KnowledgeIndex {
     const val RESOURCE = "knowledge/index.json"
-    const val BODY_LIMIT = 2500
-    const val DESCRIPTION_LIMIT = 60
+    const val BODY_LIMIT = 3500
+    const val DESCRIPTION_LIMIT = 160
     const val APP = "app"
     const val SITE = "site"
     const val SKILL = "skill"

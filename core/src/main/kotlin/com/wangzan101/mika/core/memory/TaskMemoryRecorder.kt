@@ -30,8 +30,8 @@ object TaskMemoryRecorder {
         var lastObserve: String? = null
         for (a in acts.sortedBy { it.step }) {
             val what = listOfNotNull(label(a.label), where(a.target, appLabel), a.title?.takeIf(String::isNotBlank)).joinToString(" · ")
-            val tags = listOfNotNull("对外发出".takeIf { a.outward && !a.failed }, "没成功".takeIf { a.failed })
-            val line = "第 ${a.step} 步 $what" + if (tags.isEmpty()) "" else "(${tags.joinToString("、")})"
+            val tags = listOfNotNull("sent outward".takeIf { a.outward && !a.failed }, "failed".takeIf { a.failed })
+            val line = "Step ${a.step}: $what" + if (tags.isEmpty()) "" else " (${tags.joinToString(", ")})"
             // 连着读同一处只记一行
             if (a.kind == "observe" && line == lastObserve) continue
             lastObserve = if (a.kind == "observe") line else null
@@ -60,20 +60,20 @@ object TaskMemoryRecorder {
     private fun conclusion(events: List<RunEvent>, text: Boolean = true): String {
         events.filterIsInstance<RunEvent.OutcomeJudged>().lastOrNull()?.let { j ->
             val word = when (j.outcome) {
-                "done" -> "办成"
-                "partial" -> "只办成一部分"
-                "not_possible" -> "没办成"
+                "done" -> "Done"
+                "partial" -> "Partly done"
+                "not_possible" -> "Not done"
                 else -> ""
             }
             return listOf(word, j.reason.takeIf { text }.orEmpty()).filter { it.isNotBlank() }.joinToString("：")
         }
         events.filterIsInstance<RunEvent.TaskEnded>().lastOrNull()?.let { e ->
             val word = when (e.outcome) {
-                "succeeded" -> "完成"
-                "unverified" -> "完成(未核实)"
-                "failed" -> "失败"
-                "cancelled" -> "已取消"
-                "error" -> "出错"
+                "succeeded" -> "Completed"
+                "unverified" -> "Completed (unverified)"
+                "failed" -> "Failed"
+                "cancelled" -> "Cancelled"
+                "error" -> "Error"
                 else -> ""
             }
             return listOf(word, e.answerOrReason.takeIf { text }.orEmpty()).filter { it.isNotBlank() }.joinToString("：")

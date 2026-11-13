@@ -75,7 +75,7 @@ internal object ReadPage : WebTool {
         val links = p.links.take(50).joinToString("\n") { (t, u) -> "链接「$t」$u" }
         val images = p.images.take(20).filter { it.first.isNotBlank() }.joinToString("\n") { (alt, u) -> "图片「$alt」$u" }
         val read = listOf(p.text.take(max), links, images).filter { it.isNotBlank() }.joinToString("\n")
-        val seen = if (read.isNotBlank()) webRead("网页正文(${p.url},从第 $offset 字起)\n$read", p.url, p.title) else null
+        val seen = if (read.isNotBlank()) webRead("Page text (${p.url}, from character $offset)\n$read", p.url, p.title) else null
         val q = p.quality
         return ok {
             put("url", p.url); put("title", p.title)

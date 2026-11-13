@@ -1,31 +1,31 @@
 ---
 name: amazon.com
 display: Amazon
-domains: ["amazon.com", "amazon.sg", "amazon.co.uk", "amazon.de", "amazon.co.jp"]
-aliases: ["Amazon", "亚马逊"]
+domains: ["amazon.com", "amazon.sg", "amazon.co.uk", "amazon.de", "amazon.co.jp", "amazon.ae", "amazon.sa"]
+aliases: ["Amazon", "亚马逊", "أمازون"]
 apps: []
 open: amazon.com
 mode: desktop
-description: 跨境电商平台,搜商品,看价格、变体、库存,可加入购物车。
+description: Online store: search products, see prices, variants and stock, add to cart.
 ---
-## 是什么
+## What it is
 
-全球电商平台。各国家站点(.com、.sg、.co.uk、.de、.co.jp)是各自独立的货架,价格、库存、币种、配送都不同。
+A global online store. Each country site (.com, .sg, .co.uk, .de, .co.jp, .ae, .sa and so on) is a separate shelf with its own prices, stock, currency and delivery.
 
-## 页面与网址
+## Pages and URLs
 
-- 搜索:在目标国家站点打开 `/s?k=<关键词>`,关键词需 URL 编码。
-- 商品详情:以 ASIN 为准的干净链接。搜索页上的卡片可能被广告改写跳转。
-- 没指定地区时,站点按访问者所在地自然落到某个国家站。
+- Search: on the target country site open `/s?k=<keywords>`, with the keywords URL-encoded.
+- Product details: a clean link based on the ASIN. Cards on the search page may be rewritten by ads to redirect.
+- When no region is given, the site falls to a country site based on the visitor's location.
 
-## 功能
+## Features
 
-- **搜索**:公开可看。每个结果有 ASIN、标题、价格与币种、评分与评论数,广告位有标记。
-- **商品详情**:buybox 里是主价格、库存和卖家条件;二手和第三方卖家的报价另列。有变体的商品(颜色、规格等),初始价格只对应默认选中的那一款,选到另一款后价格和库存会变。
-- **加入购物车**:详情页的 Add to Cart 按钮;成功后页面显示 Added to Cart 提示。
+- **Search**: public. Each result has an ASIN, title, price and currency, rating and review count; sponsored slots are marked.
+- **Product details**: the buy box has the main price, stock and seller terms; used and third-party offers are listed separately. For products with variants (color, size and so on), the initial price is only for the variant selected by default; selecting another changes price and stock.
+- **Add to cart**: the Add to Cart button on the detail page; on success the page shows an Added to Cart message.
 
-## 已知现象
+## Known behaviour
 
-- 地区重定向会使页面缺价,或显示 SGD、GBP 等币种。
-- 加购后角标数字和按钮颜色有延迟,未必立即更新。
-- 页面结构改版或弹出人机验证时,商品信息读不出来。
+- Region redirects can leave a page without a price, or show currencies such as SGD or GBP.
+- After adding to cart, the cart badge and button color update with a delay, not always at once.
+- When the page layout changes or a CAPTCHA appears, product information can't be read.

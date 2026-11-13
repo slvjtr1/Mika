@@ -99,8 +99,8 @@ internal object SetAlarm : PhoneTool {
         val time = time(r) ?: return emptyList()
         val check = (r.content["check"] as? JsonPrimitive)?.contentOrNull
         val by = (r.content["handledBy"] as? JsonPrimitive)?.contentOrNull
-        val tail = if (check == AlarmCheck.Status.VERIFIED.wire) ",系统报的下一个闹钟就是它" else ",系统没报出它(未核实)"
-        return listOf(Observation(ObsKind.Fact, "$name 把 $time 的闹钟交给了 ${by ?: "时钟 App"}$tail", source = PHONE))
+        val tail = if (check == AlarmCheck.Status.VERIFIED.wire) "; the system reports it as the next alarm" else "; the system did not report it (unverified)"
+        return listOf(Observation(ObsKind.Fact, "$name handed the $time alarm to ${by ?: "the Clock app"}$tail", source = PHONE))
     }
 }
 
@@ -132,7 +132,7 @@ internal object SetTimer : PhoneTool {
     override fun observations(o: JsonObject, r: ToolExecution, log: EvidenceLog): List<Observation> {
         if (r.content["ok"] != JsonPrimitive(true)) return emptyList()
         val by = (r.content["handledBy"] as? JsonPrimitive)?.contentOrNull
-        return listOf(Observation(ObsKind.Fact, "$name 把 ${seconds(o)} 的计时器交给了 ${by ?: "时钟 App"}", source = PHONE))
+        return listOf(Observation(ObsKind.Fact, "$name handed a ${seconds(o)} timer to ${by ?: "the Clock app"}", source = PHONE))
     }
 }
 

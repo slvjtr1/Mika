@@ -1,30 +1,30 @@
-你替一个手机助手把一次已经办成的任务(交出回答后按用户的要求判过,确实办成了),写成一份以后可以照着做的「技能」文档。你看不到手机,只根据下面给你的目标、最终回答、回答的来源和动作清单来写;另外会列出用户已有的个人技能(含待用户确认的草稿),用来判断这次是不是已有的那一类事。
+For a phone assistant, you turn a task that was completed (judged done after the answer, as the user asked) into a "skill" document that can be followed next time. You cannot see the phone; you write only from the goal, the final answer, the sources of the answer and the list of actions given below. The user's existing personal skills (including drafts awaiting confirmation) are also listed, so you can tell whether this task is the same kind of thing as one of them.
 
-只输出一份 Markdown 文档,不要输出其他文字,格式如下:
+Output only one Markdown document and nothing else, in this format:
 
 ---
-name: <小写英文和连字符,如 send-wechat-message>
-display: <简短名称>
-description: <一句话:什么情况下用这份技能>
-apps: [<用到的 App 包名>]
-domains: [<用到的网站域名,没有就留空>]
-aliases: [<用户可能怎么说这类事,两三个短词>]
+name: <lowercase English and hyphens, such as send-chat-message>
+display: <short name>
+description: <one sentence: when to use this skill>
+apps: [<package names of the apps used>]
+domains: [<domains of the websites used; leave empty if none>]
+aliases: [<two or three short ways the user might say this kind of thing>]
 source: learned
-learned_from: <运行编号>
-updates: <已有技能的 name;这次是新的一类事就去掉这一行>
+learned_from: <run ID>
+updates: <name of an existing skill; remove this line if this is a new kind of task>
 ---
-## 入口
-## 步骤
-## 容易出错的地方
-## 怎样算办成(核实证据)
-## 什么时候停下交给用户
+## Entry
+## Steps
+## Pitfalls
+## Done when (evidence to verify)
+## When to stop and hand over
 
-要求:
-- 五个小节都要有,标题照抄。全文不超过 3000 字。
-- display、description、aliases 和各小节的正文用「目标」所用的语言写(目标是西班牙语就写西班牙语,是英语就写英语),不要因为这份说明是中文就写中文。五个小节的标题照抄、不翻译;App 名、按钮文字这类界面上的字保持原样。
-- 先对照「已有的个人技能」:这次办的事和其中一份是同一类事(只是对象、数值或说法不同也算),就在头部写 updates: 加它的 name,按这一次验证过的路线把那份技能重写一遍;不是同一类事就去掉 updates 这一行,另起一个不和已有名字重复的 name。不要给同一类事再起一份新技能。
-- 写的是「这类事」的通用做法,不是这一次的流水账。这一次的具体值(联系人、金额、数量、地址、要发的文字、日期)一律写成 `<参数>` 或「用户指定的联系人」这类说法,不要写出来。目标里已经替换成 <参数> 的地方保持 <参数>。
-- 步骤按动作清单里真正生效的路线写;动作清单里出错又绕过去的地方写进「容易出错的地方」。
-- 提到工具时用反引号包住工具名,只能用「可用工具」里列出的名字;其他东西(App 名、按钮文字、包名)不要用反引号。
-- 「怎样算办成」写办完后能看到的结果(回答依据的那几次读取说明了在哪儿看);「什么时候停下交给用户」写需要用户登录、付款、确认或做选择的时刻。
-- 不写密码、验证码、卡号、证件号,也不写任何人的私人信息。
+Requirements:
+- All five sections must be present, with the headings copied exactly. At most 3000 characters in total.
+- Write display, description, aliases and the section bodies in English, unless the goal is written in another language that is not Chinese; then use the goal's language. Copy the five section headings exactly, without translating them. Keep on-screen words such as app names and button labels as they appear.
+- First compare with the existing personal skills: if this task is the same kind of thing as one of them (even with a different target, value or wording), write updates: with its name in the header and rewrite that skill along the route verified this time. If it is not the same kind of thing, remove the updates line and choose a new name that does not repeat an existing one. Never start a second skill for the same kind of task.
+- Write the general method for this kind of task, not a log of this run. Write every concrete value from this run (contact, amount, quantity, address, text to send, date) as `<parameter>` or a phrase like "the contact the user named"; never write the values themselves. Keep any place already replaced with <参数> or <parameter> in the goal as <parameter>.
+- Write the steps along the route that actually took effect in the list of actions; put the places where something failed and was worked around under Pitfalls.
+- When you mention a tool, wrap the tool name in backticks, and only use names listed under Available tools; do not put anything else (app names, button labels, package names) in backticks.
+- Under Done when, write the result that can be seen after finishing (the reads the answer relied on show where to look); under When to stop and hand over, write the moments that need the user to sign in, pay, confirm or choose.
+- Never write passwords, verification codes, card numbers or ID numbers, or anyone's private information.

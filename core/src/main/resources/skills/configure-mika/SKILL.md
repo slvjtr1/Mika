@@ -1,32 +1,32 @@
 ---
 name: configure-mika
-display: 改 Mika 自己的设置
-description: 用户让 Mika 改自己的设置时用它看和改;模型、Key 与删数据不在其中
-aliases: ["设置你自己", "改你的设置", "调快一点", "别静音", "换个外观"]
-terms: ["设置", "配置", "快一点", "慢一点", "静音", "外观", "深色", "浅色", "胶囊"]
+display: Change Mika's own settings
+description: Use when the user asks Mika to view or change its own settings; models, keys and deleting data are not included
+aliases: ["change your settings", "adjust yourself", "go faster", "don't mute", "change the look"]
+terms: ["settings", "configure", "faster", "slower", "mute", "appearance", "dark", "light", "capsule", "control mode"]
 ---
-## 先看能改什么
+## See what can be changed first
 
-先调 `settings_list`。它会列出此刻能改的每一项:键、给人看的名字、现在的值,以及(如果能选的只有几个)全部可选值。
+Call `settings_list` first. It lists every item that can be changed right now: the key, a human-readable name, the current value and, when there are only a few choices, all allowed values.
 
-**只用列表里给出的键和值**,不要自己猜一个词。用户说的和你看到的对不上时(比如用户说「别静音」,列表里叫「mute_apps」),按名字挑出那一项,把 `label` 念给用户听确认是这个。
+**Use only keys and values from the list**; never guess a word. When what the user said doesn't match what you see (for example the user says "don't mute" and the list calls it "mute_apps"), pick the item by its name and read its `label` back to the user to confirm.
 
-## 改之前先说一句
+## Say it before changing
 
-用户明确说了要改什么,就用 `settings_set` 直接改,改完告诉用户现在的值。用户的话含糊时(「让它快一点」)先说清你打算改哪一项、改成什么,再改:
+When the user clearly says what to change, change it directly with `settings_set` and tell them the new value. When the request is vague ("make it faster"), first say which item you plan to change and to what, then change it:
 
-> 我把操作节奏改成「快」了,下个任务开始生效。
+> I set the operating pace to Fast; it takes effect from the next task.
 
-**不要改用户没提到的东西**。一次改几项时逐项说。
+**Do not change anything the user didn't mention.** When changing several items at once, mention each one.
 
-## 改不了的东西
+## What can't be changed
 
-- **模型、API Key、登录**:不在列表里。用户要这些时,告诉他去「设置 › 模型」,你说不了这一步。
-- **删数据**(清工作区、重置运行环境、删对话):也不在列表里,同样请他自己做。
-- **容器的联网与代理**:不在列表里。这两项会让数据离开手机,要用户自己去「设置 › 文件与计算环境」里开或填,你不要替他改。
+- **Models, API keys, sign-in**: not in the list. When the user asks for these, tell them to go to Settings › Model; you can't do this step.
+- **Deleting data** (clearing the workspace, resetting the environment, deleting conversations): not in the list either; ask the user to do it themselves.
+- **Container network access and proxy**: not in the list. These let data leave the phone, so the user must turn them on or fill them in themselves in Settings › Files & computing; don't change them for the user.
 
-这几类是故意的:第一类等于让模型换掉自己的脑子、动用户的钱;第二类不可逆;联网那道线得用户自己划。
+These are deliberate: the first would let the model replace its own brain or spend the user's money; the second can't be undone; the network line is the user's to draw.
 
-## 生效时间
+## When changes take effect
 
-大多数改动下一个任务开始生效;外观(深浅色)当场就换。改完顺带说一句,免得用户以为没生效。
+Most changes take effect from the next task; appearance (dark or light) changes at once. Mention this after changing, so the user doesn't think it didn't work.

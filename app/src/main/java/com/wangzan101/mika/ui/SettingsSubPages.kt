@@ -269,6 +269,7 @@ fun DuringWorkScreen(
     selfConfig: Boolean = false, onSelfConfig: (Boolean) -> Unit = {},
     selfOperate: Boolean = false, onSelfOperate: (Boolean) -> Unit = {},
     pipOperate: Boolean = false, onPipOperate: (Boolean) -> Unit = {},
+    controlInScreen: Boolean = false, onControlInScreen: (Boolean) -> Unit = {},
     externalSchedule: Boolean = false, onExternalSchedule: (Boolean) -> Unit = {},
     stepLimit: Int? = null, onStepLimit: (Int?) -> Unit = {},
     tokenBudget: Long? = null, onTokenBudget: (Long?) -> Unit = {},
@@ -367,6 +368,17 @@ fun DuringWorkScreen(
             ) {
                 MikaSwitch(externalSchedule, onExternalSchedule, Modifier.testTag("work-external-schedule"))
             }
+        }
+        GroupLabel(stringResource(R.string.settings_control_mode))
+        GroupCard {
+            RadioRow(
+                stringResource(R.string.settings_control_background), selected = !controlInScreen,
+                onClick = { onControlInScreen(false) }, subtitle = stringResource(R.string.settings_control_background_detail), first = true,
+            )
+            RadioRow(
+                stringResource(R.string.settings_control_screen), selected = controlInScreen,
+                onClick = { onControlInScreen(true) }, subtitle = stringResource(R.string.settings_control_screen_detail), first = false,
+            )
         }
         GroupLabel(stringResource(R.string.settings_pace))
         GroupCard {

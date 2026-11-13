@@ -53,47 +53,47 @@ class CallInstructionStore internal constructor(
             failure.value = null
             true
         } catch (_: Exception) {
-            failure.value = "无法读取已保存的电话交代；已有数据未覆盖"
+            failure.value = "Could not read saved call instructions; existing data was not overwritten"
             false
         }
     }
 
     @Synchronized fun save(draft: CallInstruction): CallInstruction {
-        check(load()) { "电话交代未读入，不能覆盖" }
+        check(load()) { "Call instructions were not loaded, so they can't be overwritten" }
         val row = draft.copy(id = draft.id.ifBlank(newId), title = draft.title.trim(),
             situation = draft.situation.trim(), response = draft.response.trim())
         validate(row)
         val before = mutable.value
         val next = if (before.any { it.id == row.id }) before.map { if (it.id == row.id) row else it }
             else before + row
-        require(next.size <= MAX_RULES) { "最多保存 30 条电话交代" }
-        require(render(next, now()).length <= MAX_PROMPT_CHARS) { "生效交代过长，请精简或暂停部分条目" }
+        require(next.size <= MAX_RULES) { "You can save at most 30 call instructions" }
+        require(render(next, now()).length <= MAX_PROMPT_CHARS) { "Active instructions are too long; shorten or pause some entries" }
         persist(next)
         return row
     }
 
     @Synchronized fun remove(id: String) {
-        check(load()) { "电话交代未读入" }
+        check(load()) { "Call instructions were not loaded" }
         persist(mutable.value.filterNot { it.id == id })
     }
 
     @Synchronized fun setEnabled(id: String, enabled: Boolean) {
-        check(load()) { "电话交代未读入" }
+        check(load()) { "Call instructions were not loaded" }
         val row = mutable.value.singleOrNull { it.id == id } ?: return
         save(row.copy(enabled = enabled))
     }
 
     /** Called once before a new realtime session; edits never silently change a connected call. */
     @Synchronized fun promptSnapshot(): String {
-        check(load()) { "电话交代无法读取，未自动使用不完整的交代" }
+        check(load()) { "Call instructions could not be read; incomplete instructions were not used" }
         return render(mutable.value, now())
     }
 
     private fun persist(next: List<CallInstruction>) {
         val saved = runCatching { backend.write(json.encodeToString(next)) }.getOrDefault(false)
         if (!saved) {
-            failure.value = "电话交代保存失败，原有交代保持不变"
-            error("电话交代保存失败")
+            failure.value = "Saving call instructions failed; the existing ones are unchanged"
+            error("Saving call instructions failed")
         }
         mutable.value = next
         failure.value = null
@@ -104,11 +104,11 @@ class CallInstructionStore internal constructor(
         const val MAX_PROMPT_CHARS = 8_000
         private const val MAX_STORAGE_CHARS = 100_000
         private fun validate(row: CallInstruction) {
-            require(Regex("[A-Za-z0-9_-]{1,100}").matches(row.id)) { "交代编号无效" }
-            require(row.title.isNotBlank() && row.title.length <= 64) { "标题需为 1–64 字" }
-            require(row.situation.isNotBlank() && row.situation.length <= 200) { "适用场景需为 1–200 字" }
-            require(row.response.isNotBlank() && row.response.length <= 800) { "处理方式需为 1–800 字" }
-            require(row.expiresAtMs == null || row.expiresAtMs > 0) { "失效时间无效" }
+            require(Regex("[A-Za-z0-9_-]{1,100}").matches(row.id)) { "Invalid instruction ID" }
+            require(row.title.isNotBlank() && row.title.length <= 64) { "The title must be 1–64 characters" }
+            require(row.situation.isNotBlank() && row.situation.length <= 200) { "The situation must be 1–200 characters" }
+            require(row.response.isNotBlank() && row.response.length <= 800) { "The handling must be 1–800 characters" }
+            require(row.expiresAtMs == null || row.expiresAtMs > 0) { "Invalid expiry time" }
         }
 
         internal fun render(rows: List<CallInstruction>, atMs: Long): String {

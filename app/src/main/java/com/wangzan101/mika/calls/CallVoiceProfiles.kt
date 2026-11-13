@@ -96,14 +96,14 @@ class CallVoiceProfileStore internal constructor(
 
     @Synchronized
     fun save(profile: CallVoiceProfile, credentials: VolcRealtimeCredentials? = null): CallVoiceProfile {
-        check(load()) { "无法读取实时语音配置" }
-        require(credentials == null || credentials.valid) { "实时语音凭据不完整" }
+        check(load()) { "Could not read realtime voice profiles" }
+        require(credentials == null || credentials.valid) { "Realtime voice credentials are incomplete" }
         val id = profile.id.ifBlank(newId)
         val existing = stored.profiles.firstOrNull { it.id == id }
         val normalized = profile.copy(id = id, name = profile.name.trim(), endpoint = profile.endpoint.trim(),
             model = profile.model.trim(), speaker = profile.speaker.trim().ifBlank { VolcRealtimeConfig.DEFAULT_SPEAKER })
         validate(normalized)
-        require(stored.profiles.size < CallVoiceProfile.MAX_PROFILES || existing != null) { "最多保存 ${CallVoiceProfile.MAX_PROFILES} 套实时语音配置" }
+        require(stored.profiles.size < CallVoiceProfile.MAX_PROFILES || existing != null) { "You can save at most ${CallVoiceProfile.MAX_PROFILES} realtime voice profiles" }
         val serviceChanged = existing != null && (existing.protocol != normalized.protocol || existing.endpoint != normalized.endpoint || existing.model != normalized.model)
         val savedCredentials = credentials?.let {
             StoredVoiceCredentials(it.apiKey, it.appId, it.accessKey)
@@ -125,9 +125,9 @@ class CallVoiceProfileStore internal constructor(
 
     @Synchronized
     fun delete(id: String, activeId: String) {
-        check(load()) { "无法读取实时语音配置" }
-        require(id != activeId) { "请先选择另一套默认配置" }
-        require(stored.profiles.any { it.id == id }) { "实时语音配置不存在" }
+        check(load()) { "Could not read realtime voice profiles" }
+        require(id != activeId) { "Choose another default profile first" }
+        require(stored.profiles.any { it.id == id }) { "That realtime voice profile does not exist" }
         persist(StoredVoiceProfiles(stored.profiles.filterNot { it.id == id }, stored.credentials - id))
     }
 
@@ -160,7 +160,7 @@ class CallVoiceProfileStore internal constructor(
         if (!load()) return false
         val default = CallVoiceProfile(
             id = CallVoiceProfile.DEFAULT_ID,
-            name = "默认实时语音",
+            name = "Default realtime voice",
             model = config.model,
             speaker = config.speaker,
         )
@@ -186,7 +186,7 @@ class CallVoiceProfileStore internal constructor(
     }
 
     private fun edit(id: String, change: (CallVoiceProfile) -> CallVoiceProfile) {
-        check(load()) { "无法读取实时语音配置" }
+        check(load()) { "Could not read realtime voice profiles" }
         val current = stored.profiles.firstOrNull { it.id == id } ?: return
         persist(stored.copy(profiles = stored.profiles.map { if (it.id == id) change(current) else it }))
     }
@@ -200,20 +200,20 @@ class CallVoiceProfileStore internal constructor(
         } finally {
             plain.fill(0)
         }
-        check(backend.write(encoded)) { "无法保存实时语音配置" }
+        check(backend.write(encoded)) { "Could not save the realtime voice profile" }
         stored = next
         mutable.value = next.profiles
         revision.value++
     }
 
     private fun validate(profile: CallVoiceProfile) {
-        require(Regex("[A-Za-z0-9_-]{1,100}").matches(profile.id)) { "配置编号无效" }
-        require(profile.name.isNotBlank() && profile.name.length <= CallVoiceProfile.MAX_NAME) { "配置名称需为 1–${CallVoiceProfile.MAX_NAME} 字" }
-        require(profile.endpoint.length <= CallVoiceProfile.MAX_ENDPOINT) { "接口地址过长" }
+        require(Regex("[A-Za-z0-9_-]{1,100}").matches(profile.id)) { "Invalid profile ID" }
+        require(profile.name.isNotBlank() && profile.name.length <= CallVoiceProfile.MAX_NAME) { "The profile name must be 1–${CallVoiceProfile.MAX_NAME} characters" }
+        require(profile.endpoint.length <= CallVoiceProfile.MAX_ENDPOINT) { "The API URL is too long" }
         val uri = runCatching { java.net.URI(profile.endpoint) }.getOrNull()
-        require(uri != null && uri.scheme == "wss" && !uri.host.isNullOrBlank() && uri.userInfo == null) { "接口地址必须是有效的 wss 地址" }
-        require(profile.model.isNotBlank() && profile.model.length <= CallVoiceProfile.MAX_MODEL && profile.model.all { it.code in 33..126 }) { "实时模型名称无效" }
-        require(profile.speaker.length <= CallPolicy.MAX_SPEAKER_CHARS && profile.speaker.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it in "_-" }) { "声音编号无效" }
+        require(uri != null && uri.scheme == "wss" && !uri.host.isNullOrBlank() && uri.userInfo == null) { "The API URL must be a valid wss URL" }
+        require(profile.model.isNotBlank() && profile.model.length <= CallVoiceProfile.MAX_MODEL && profile.model.all { it.code in 33..126 }) { "Invalid realtime model name" }
+        require(profile.speaker.length <= CallPolicy.MAX_SPEAKER_CHARS && profile.speaker.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it in "_-" }) { "Invalid voice ID" }
     }
 
     private fun verificationKey(mode: CallAudioMode, fingerprint: String) = "${mode.name}:$fingerprint"

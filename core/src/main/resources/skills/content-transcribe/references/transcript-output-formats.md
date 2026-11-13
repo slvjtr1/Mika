@@ -1,47 +1,47 @@
-# 几种整理结果的写法
+# How to write each kind of result
 
-时间一律写成「分:秒」,超过一小时写「时:分:秒」。估出来的时间前面加「约」。
+Write times as "mm:ss", or "h:mm:ss" past one hour. Put "about" before estimated times.
 
-## 摘要
+## Summary
 
-五到十句,第三人称、现在时,讲清这期内容的主题、主要论点和结论。不加评价。
+Five to ten sentences, third person, present tense, covering the episode's topic, main arguments and conclusion. No opinions of your own.
 
-## 章节目录
+## Chapter list
 
-每行一个时间加一个短标题,标题不超过十五个字:
-
-```
-00:00 开场与话题
-03:40 为什么会有这个问题
-09:15 两种做法的对比
-21:30 实际数据
-35:05 听众提问
-```
-
-## 分章节摘要
-
-章节标题后面括号写这一章大约多长,下面两三句写这一章实际讲了什么:
+One time and a short title per line, titles no longer than about eight words:
 
 ```
-### 03:40 为什么会有这个问题(约 5 分钟)
-主讲人回顾了这个问题的由来,举了两个常见的例子。
-
-### 09:15 两种做法的对比(约 12 分钟)
-比较了做法甲和做法乙的成本和效果,结论是……
+00:00 Opening and topic
+03:40 Why this problem exists
+09:15 Comparing the two approaches
+21:30 Real-world data
+35:05 Listener questions
 ```
 
-## 引文
+## Chapter summaries
 
-原话照录,后面写出现的时间;是字幕原文还是翻译,要注明:
+After each chapter title, give the chapter's approximate length in parentheses; below it, two or three sentences on what the chapter actually covers:
 
 ```
-「先把数据弄干净,比换模型更重要。」—— 12:18
+### 03:40 Why this problem exists (about 5 minutes)
+The host reviews where the problem comes from and gives two common examples.
+
+### 09:15 Comparing the two approaches (about 12 minutes)
+Compares the cost and results of approach A and approach B; the conclusion is …
 ```
 
-## 改写成文章
+## Quotes
 
-- 一个标题
-- 一段开头,说这是根据哪一期内容整理的
-- 每个主要话题一个小标题,下面成段叙述
-- 关键原话用引文格式,带时间
-- 结尾一段:要点或可以照着做的建议
+Copy the exact words, followed by the time; note whether it is the original subtitle text or a translation:
+
+```
+"Cleaning up the data matters more than switching models." — 12:18
+```
+
+## Rewritten as an article
+
+- A title
+- An opening paragraph saying which episode it is based on
+- A subheading for each main topic, with prose below it
+- Key quotes in quote format, with times
+- A closing paragraph: key takeaways or advice to act on

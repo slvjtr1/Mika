@@ -117,7 +117,7 @@ internal object HttpSupport {
                                 if (cont.isActive) cont.resume(RawResponse(it.code, it.header("retry-after"), it.body?.string().orEmpty()))
                                 return
                             }
-                            val source = it.body?.source() ?: throw ModelError.BadResponse("流式响应没有内容")
+                            val source = it.body?.source() ?: throw ModelError.BadResponse("The streaming response is empty")
                             val data = mutableListOf<String>()
                             var events = 0
                             /** 派发一个事件;返回 true 表示协议层已到终态(如 [DONE]),读循环就此收尾,不再等连接关闭。 */

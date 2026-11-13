@@ -293,7 +293,7 @@ private class AnthropicStream(
 
     fun accept(data: String): Boolean {
         val root = try { json.parseToJsonElement(data).jsonObject }
-        catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
+        catch (e: Exception) { throw ModelError.BadResponse("The streaming response is not valid JSON", e) }
         when ((root["type"] as? JsonPrimitive)?.contentOrNull) {
             "message_start" -> usage = (root["message"] as? JsonObject)?.get("usage") as? JsonObject
             "content_block_start" -> {
@@ -351,7 +351,7 @@ private class AnthropicStream(
                 }
                 "redacted_thinking" -> block.data.takeIf(String::isNotEmpty)?.let { Part.Thinking("", SignedThinking.redacted(endpoint, it)) }
                 "tool_use" -> {
-                    if (block.id.isEmpty() || block.name.isEmpty()) throw ModelError.BadResponse("工具调用流缺少名称或编号")
+                    if (block.id.isEmpty() || block.name.isEmpty()) throw ModelError.BadResponse("The tool call stream is missing a name or ID")
                     Part.ToolCall(block.id, block.name, block.input.toString().ifEmpty { block.initialInput })
                 }
                 else -> null

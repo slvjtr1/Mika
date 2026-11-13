@@ -213,4 +213,9 @@
     <string name="settings_scheduled_quiet_start">시작 시간</string>
     <string name="settings_scheduled_quiet_end">종료 시간</string>
     <string name="settings_scheduled_quiet_equal">알림을 조용히 표시하려면 시작 시간과 종료 시간을 다르게 선택하세요.</string>
+    <string name="settings_control_mode">Control mode</string>
+    <string name="settings_control_background">Control in background</string>
+    <string name="settings_control_background_detail">Mika works on its own hidden screen; you see a small live preview you can tap to enlarge.</string>
+    <string name="settings_control_screen">Control in screen</string>
+    <string name="settings_control_screen_detail">Everything Mika does is shown full size in front of you while it works. Tap outside to shrink it.</string>
 </resources>

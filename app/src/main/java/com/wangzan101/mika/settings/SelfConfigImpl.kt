@@ -14,12 +14,13 @@ class SelfConfigImpl(
     private val flags: FeatureFlags,
 ) : SelfConfig {
     override fun options(): List<SelfConfig.Option> = listOf(
-        SelfConfig.Option(KEY_PACE, "操作节奏", flags.operatingPace().name.lowercase(), listOf("fast", "standard", "human")),
-        SelfConfig.Option(KEY_MUTE, "干活时把被操作的 App 静音", onOff(flags.muteTarget()), ON_OFF),
-        SelfConfig.Option(KEY_THEME, "外观", flags.themeMode().name.lowercase(), listOf("system", "light", "dark")),
-        SelfConfig.Option(KEY_ACCENT, "强调色", flags.themeAccent().name.lowercase(), ACCENTS),
-        SelfConfig.Option(KEY_CAPSULE, "悬浮胶囊", flags.capsuleMode().name.lowercase(), listOf("off", "duringtasks", "always")),
-        SelfConfig.Option(KEY_KEEP_ON, "干活时屏幕常亮", onOff(flags.keepScreenOn()), ON_OFF),
+        SelfConfig.Option(KEY_PACE, "Operating pace", flags.operatingPace().name.lowercase(), listOf("fast", "standard", "human")),
+        SelfConfig.Option(KEY_MUTE, "Mute the app being operated while working", onOff(flags.muteTarget()), ON_OFF),
+        SelfConfig.Option(KEY_THEME, "Appearance", flags.themeMode().name.lowercase(), listOf("system", "light", "dark")),
+        SelfConfig.Option(KEY_ACCENT, "Accent color", flags.themeAccent().name.lowercase(), ACCENTS),
+        SelfConfig.Option(KEY_CAPSULE, "Floating capsule", flags.capsuleMode().name.lowercase(), listOf("off", "duringtasks", "always")),
+        SelfConfig.Option(KEY_KEEP_ON, "Keep the screen on while working", onOff(flags.keepScreenOn()), ON_OFF),
+        SelfConfig.Option(KEY_CONTROL, "Control mode", if (flags.controlInScreen()) "screen" else "background", listOf("background", "screen")),
     )
 
     override fun set(key: String, value: String): String? {
@@ -61,6 +62,11 @@ class SelfConfigImpl(
                 null
             }
             KEY_KEEP_ON -> bool { flags.setKeepScreenOn(it) }
+            KEY_CONTROL -> when (v) {
+                "background" -> { flags.setControlInScreen(false); null }
+                "screen" -> { flags.setControlInScreen(true); null }
+                else -> "control mode is one of background, screen"
+            }
             else -> "there is no such setting"
         }
     }
@@ -77,5 +83,6 @@ class SelfConfigImpl(
         val ACCENTS = ThemeAccent.entries.map { it.name.lowercase() }
         const val KEY_CAPSULE = "capsule"
         const val KEY_KEEP_ON = "keep_screen_on"
+        const val KEY_CONTROL = "control_mode"
     }
 }

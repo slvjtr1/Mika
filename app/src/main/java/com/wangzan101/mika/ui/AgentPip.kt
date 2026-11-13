@@ -117,6 +117,8 @@ fun AgentPip(
     soundOn: Boolean = false,
     /** 用户在设置里开了「允许我在小窗里直接操作」。 */
     operateEnabled: Boolean = false,
+    /** "Control in screen": the expanded view fills all the room it has instead of a floating window. */
+    screenMode: Boolean = false,
     reduceMotion: Boolean,
     topInset: Float,
     bottomInset: Float,
@@ -142,7 +144,7 @@ fun AgentPip(
         }
         AnimatedVisibility(pip.visible && !pip.closed, enter = fadeIn(fade), exit = fadeOut(if (reduceMotion) tween(150) else tween(500))) {
             PipWindow(
-                pip, frame, webContent, pipInput, soundOn, operateEnabled, reduceMotion,
+                pip, frame, webContent, pipInput, soundOn, operateEnabled, screenMode, reduceMotion,
                 areaWidth = constraints.maxWidth.toFloat(), areaHeight = constraints.maxHeight.toFloat(),
                 topInset = topInset, bottomInset = bottomInset, onExpand = onExpand, onCollapse = onCollapse, onAttention = onAttention,
                 onClose = onClose,
@@ -190,6 +192,7 @@ private fun PipWindow(
     pipInput: PipInput?,
     soundOn: Boolean,
     operateEnabled: Boolean,
+    screenMode: Boolean,
     reduceMotion: Boolean,
     areaWidth: Float,
     areaHeight: Float,
@@ -216,6 +219,7 @@ private fun PipWindow(
         val availableWidth = with(density) { (areaWidth - margin).coerceAtLeast(1f).toDp() }
         val availableHeight = with(density) { (areaHeight - topInset - bottomInset - margin).coerceAtLeast(1f).toDp() }
         val base = when {
+            screenMode && pip.expanded -> 4000.dp
             landscapeFrame -> if (pip.expanded) 320.dp else 220.dp
             else -> if (pip.expanded) ExpandedWidth else CollapsedWidth
         }

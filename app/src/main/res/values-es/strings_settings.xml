@@ -223,4 +223,9 @@
     <string name="settings_scheduled_quiet_start">Hora de inicio</string>
     <string name="settings_scheduled_quiet_end">Hora de fin</string>
     <string name="settings_scheduled_quiet_equal">Elige horas de inicio y fin distintas para silenciar las notificaciones.</string>
+    <string name="settings_control_mode">Control mode</string>
+    <string name="settings_control_background">Control in background</string>
+    <string name="settings_control_background_detail">Mika works on its own hidden screen; you see a small live preview you can tap to enlarge.</string>
+    <string name="settings_control_screen">Control in screen</string>
+    <string name="settings_control_screen_detail">Everything Mika does is shown full size in front of you while it works. Tap outside to shrink it.</string>
 </resources>

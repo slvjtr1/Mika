@@ -256,7 +256,7 @@ private class GeminiStream(
 
     fun accept(data: String): Boolean {
         val root = try { json.parseToJsonElement(data).jsonObject }
-        catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
+        catch (e: Exception) { throw ModelError.BadResponse("The streaming response is not valid JSON", e) }
         var usageInEvent = false
         usageOf(root["usageMetadata"])?.let { usage = it; usageInEvent = true }
         val candidate = (root["candidates"] as? JsonArray)?.firstOrNull() as? JsonObject

@@ -27,7 +27,7 @@ class VolcRealtimeProvider : CallRealtimeProvider {
         credentials: VolcRealtimeCredentials,
         systemPrompt: String,
     ): CallRealtimeSession {
-        require(profile.protocol == CallVoiceProtocol.VOLC_DUPLEX) { "不支持的实时语音协议" }
+        require(profile.protocol == CallVoiceProtocol.VOLC_DUPLEX) { "Unsupported realtime voice protocol" }
         return VolcRealtimeClient(endpoint = profile.endpoint).connect(credentials, VolcRealtimeConfig(
             systemPrompt = systemPrompt,
             speaker = profile.speaker,

@@ -162,7 +162,7 @@ internal object Tabs : WebTool {
         val tabs = (r.content["tabs"] as? JsonArray)?.mapNotNull { it as? JsonObject } ?: listOf(r.content)
         return listOfNotNull(tabs.mapNotNull { t ->
             val title = (t["title"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-            "标签 ${(t["tabId"] as? JsonPrimitive)?.contentOrNull}:网址 ${(t["url"] as? JsonPrimitive)?.contentOrNull},网页标题「$title」"
+            "Tab ${(t["tabId"] as? JsonPrimitive)?.contentOrNull}: URL ${(t["url"] as? JsonPrimitive)?.contentOrNull}, page title \"$title\""
         }.takeIf { it.isNotEmpty() }?.let { webFact(it.joinToString("\n", "$name:\n")) })
     }
 }

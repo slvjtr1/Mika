@@ -29,7 +29,7 @@ enum class OperatingPace {
     }
 
     companion object {
-        val DEFAULT = STANDARD
+        val DEFAULT = FAST
 
         /** 存下的名字(大小写不论);认不出为 null。 */
         fun parse(value: String?): OperatingPace? = entries.firstOrNull { it.name.equals(value?.trim(), ignoreCase = true) }

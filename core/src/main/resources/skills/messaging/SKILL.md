@@ -1,35 +1,35 @@
 ---
 name: messaging
-display: 消息与邮件
-description: 读聊天记录和邮件、拟回复,发给对的人并确认已发出
-aliases: ["发消息", "回消息", "发邮件", "看未读"]
+display: Messages and email
+description: Read chats and email, draft replies, send to the right person and confirm it was sent
+aliases: ["send a message", "reply to a message", "send an email", "check unread"]
 apps: ["wechat", "feishu"]
 sites: ["instagram.com"]
-terms: ["发消息", "回复", "邮件", "聊天", "群", "未读", "转告", "草稿"]
+terms: ["message", "reply", "email", "chat", "group", "unread", "pass on", "draft", "WhatsApp", "Telegram"]
 ---
-## 入口
+## Entry
 
-先分清用户要读、要拟稿还是要发,以及用哪个 App、哪个账号。用户点名的 App 就用那个 App;它打不开或没登录时,如实告诉用户。
+First work out whether the user wants to read, draft or send, and in which app and account. If the user names an app, use that app; if it won't open or isn't signed in, tell the user plainly.
 
-## 步骤
+## Steps
 
-1. **读**:先看会话列表或收件箱,找到对的会话后打开读正文;需要时往上翻更早的记录,留意发件人、时间、群成员和附件。未读以列表里的红点和数字为准。
-2. **找对象**:按备注名、昵称、群名或邮箱找到收件人,遇到同名的联系人、群或公众号,打开资料核对。邮件地址用通讯录或往来邮件里的真实地址。
-3. **拟稿**:按用户的意思写好。用户只要稿子时把稿子给用户,到这里为止;用户要发的,写好就发,不用先问。
-4. **发**:进到正确的会话或写信页,输入正文、加附件,发出前再看一遍收件人和全文。
-5. **核对**:发出后在会话里找到这条消息的气泡,或在邮箱的「已发送」里找到这封信,并看有没有发送失败的标记。
+1. **Read**: start from the conversation list or inbox, open the right conversation and read the messages; scroll up for earlier history when needed, noting sender, time, group members and attachments. Unread counts are the red dots and numbers in the list.
+2. **Find the recipient**: find them by saved name, nickname, group name or email address. When contacts, groups or channels share a name, open the profile to check. Use real email addresses from contacts or past mail.
+3. **Draft**: write it the way the user means. If the user only wants a draft, give them the draft and stop there; if they want it sent, send it once written without asking first.
+4. **Send**: open the right conversation or compose page, enter the text, add attachments, and check the recipient and the full text once more before sending.
+5. **Check**: after sending, find the message bubble in the conversation, or the email in Sent, and look for any failed-to-send marker.
 
-## 容易出错的地方
+## Pitfalls
 
-- 搜索结果里的同名对象很多,头像和备注不一样,点错就发错人。
-- 输入框清空不等于发出去了;网络差时消息可能停在「发送中」或带红色感叹号。没看到发出的消息,先回会话里查状态,再决定要不要重发,免得发两遍。
-- 有的输入法或键盘设置下按回车就直接发送,多行内容要用换行键或分段输入。
-- 会话列表里的预览只有开头一截,不等于全文。
+- Search results often contain several people with the same name and different avatars or saved names; tapping the wrong one sends to the wrong person.
+- An empty input box does not mean the message was sent; on a poor network a message can stay at "Sending" or show a red exclamation mark. If you don't see it sent, check its status in the conversation before deciding to resend, so it isn't sent twice.
+- With some keyboards Enter sends immediately; use the newline key or enter multi-line text in parts.
+- The preview in the conversation list is only the beginning, not the full text.
 
-## 怎样算办成(核实证据)
+## Done when (evidence to verify)
 
-读:给出的要点和时间都来自打开后的会话或邮件正文。发:会话里能看到这条已发出的消息,或「已发送」里有这封信,收件人和内容都对。
+Reading: the points and times you give come from the opened conversation or email body. Sending: the sent message is visible in the conversation, or the email is in Sent, with the right recipient and content.
 
-## 什么时候停下交给用户
+## When to stop and hand over
 
-需要登录、输入验证码,或者对象和内容有不止一种可能、要用户来选的时候,交给用户。
+Hand over to the user when sign-in or a verification code is needed, or when the recipient or content has more than one plausible choice and the user must pick.

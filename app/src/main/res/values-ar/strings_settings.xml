@@ -69,9 +69,9 @@
     <string name="settings_mute">كتم التطبيق المستخدم</string>
     <string name="settings_mute_sub">تظل التطبيقات التي تستخدمها Mika صامتة؛ ويعود الصوت عندما تستلم التحكم</string>
     <string name="settings_pace">سرعة التشغيل</string>
-    <string name="settings_pace_fast">سريع</string>
+    <string name="settings_pace_fast">سريع (افتراضي)</string>
     <string name="settings_pace_fast_detail">دون توقف بين الخطوات؛ يُملأ النص دفعة واحدة</string>
-    <string name="settings_pace_standard">عادي (افتراضي)</string>
+    <string name="settings_pace_standard">عادي</string>
     <string name="settings_pace_standard_detail">يكتب كالشخص ويتوقف قليلًا بين الخطوات؛ ويبطؤ في التطبيقات التي تمنع الاستخدام السريع</string>
     <string name="settings_pace_human">أقرب إلى تصرف البشر</string>
     <string name="settings_pace_human_detail">بطيء في كل التطبيقات، إذ يقرأ كل شاشة قبل المتابعة</string>
@@ -238,4 +238,9 @@
     <string name="settings_scheduled_quiet_start">وقت البدء</string>
     <string name="settings_scheduled_quiet_end">وقت الانتهاء</string>
     <string name="settings_scheduled_quiet_equal">اختر وقتَي بدء وانتهاء مختلفين لكتم الإشعارات.</string>
+    <string name="settings_control_mode">وضع التحكم</string>
+    <string name="settings_control_background">التحكم في الخلفية</string>
+    <string name="settings_control_background_detail">يشتغل Mika على شاشة مخفية خاصة فيه، وتشوف معاينة صغيرة مباشرة تقدر تكبرها بلمسة.</string>
+    <string name="settings_control_screen">التحكم في الشاشة</string>
+    <string name="settings_control_screen_detail">كل شيء يسويه Mika يظهر قدامك بالحجم الكامل وهو يشتغل. المس خارجها لتصغيرها.</string>
 </resources>

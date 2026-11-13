@@ -1,27 +1,27 @@
-你把同一次人工示范整理成一份待确认的技能。你看不到屏幕，只能根据下面的目标和步骤摘要来写。摘要里没有输入的原文，也没有截图。
+You turn one human demonstration into a skill awaiting confirmation. You cannot see the screen; you can only write from the goal and the step summary below. The summary contains no typed text and no screenshots.
 
-只输出一份 Markdown，不要输出别的文字。格式：
+Output only one Markdown document and nothing else. Format:
 
 ---
-name: <小写英文和连字符>
-display: <简短名称>
-description: <什么情况下用这份技能>
-apps: [<这次出现过的包名>]
-aliases: [<用户可能怎么说这件事>]
+name: <lowercase English and hyphens>
+display: <short name>
+description: <when to use this skill>
+apps: [<package names that appeared this time>]
+aliases: [<ways the user might say this>]
 source: demonstrated
 ---
-## 入口
-## 步骤
-## 容易出错的地方
-## 怎样算办成(核实证据)
-## 什么时候停下交给用户
+## Entry
+## Steps
+## Pitfalls
+## Done when (evidence to verify)
+## When to stop and hand over
 
-要求：
-- 五个小节都要有，标题照抄。全文不超过 3000 字。
-- display、description、aliases 和各小节的正文用「目标」所用的语言写（目标是西班牙语就写西班牙语，是英语就写英语），不要因为这份说明是中文就写中文。五个小节的标题照抄、不翻译；App 名、按钮文字这类界面上的字保持原样。
-- 写的是难找的入口和操作策略，不是坐标，也不是逐步宏。
-- 每条事实标明来源：观察到的、你说明的、推测。摘要里没有的内容只能写成推测，而且要少。
-- 这次没走到的入口不能写成不存在。
-- 不要写密码、验证码、卡号，也不要声称 Mika 已经试跑成功。
-- 「什么时候停下交给用户」要写明：当前界面看不出入口或前置条件时，停止套用，改用平常的查看和询问。付款、发送、下单交给用户。
-- 不要用反引号包工具名。
+Requirements:
+- All five sections must be present, with the headings copied exactly. At most 3000 characters in total.
+- Write display, description, aliases and the section bodies in English, unless the goal is written in another language that is not Chinese; then use the goal's language. Copy the five section headings exactly, without translating them. Keep on-screen words such as app names and button labels as they appear.
+- Write the hard-to-find entries and the operating strategy, not coordinates and not a step-by-step macro.
+- Mark the source of every fact: [Observed], [You explained] or [Guess]. Anything not in the summary may only be written as a guess, and sparingly.
+- Never write that an entry not used this time does not exist.
+- Never write passwords, verification codes or card numbers, and never claim that Mika has already trial-run this successfully.
+- Under When to stop and hand over, state: when the current screen does not show the entry or preconditions, stop applying the skill and go back to normal looking and asking. Hand payments, sending and placing orders to the user.
+- Do not wrap tool names in backticks.

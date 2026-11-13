@@ -64,7 +64,7 @@ internal object EvaluateJs : WebTool {
         val script = a.str("script", max = EVAL_SCRIPT_MAX_CHARS)!!
         PageScriptProtocol.codeProblem(script)?.let { throw ArgError("script", it) }
         val timeout = a.int("timeoutMs", 1000, READ_SCRIPT_MAX_TIMEOUT_MS) ?: READ_SCRIPT_DEFAULT_TIMEOUT_MS
-        return readScript(ctx, script, null, timeout, "网页数据脚本的结果")
+        return readScript(ctx, script, null, timeout, "Result of the page data script")
     }
 }
 

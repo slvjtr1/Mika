@@ -66,7 +66,7 @@ private class CallAgentTool(private val action: String, override val verb: Verb)
                     }
                     ConfirmationRequest(IrrevAction.other, "SIM ${simId ?: "（仅一张可用时自动选择）"}", content, null, capability)
                 }
-                "answer", "hangup" -> ConfirmationRequest(IrrevAction.other, "通话 ${callId(a)}", label, null, capability)
+                "answer", "hangup" -> ConfirmationRequest(IrrevAction.other, "Call ${callId(a)}", label, null, capability)
                 else -> null
             }
         } catch (_: ArgError) {

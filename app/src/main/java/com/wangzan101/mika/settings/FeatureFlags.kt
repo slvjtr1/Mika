@@ -197,6 +197,16 @@ class FeatureFlags(private val prefs: SharedPreferences) {
      */
     fun pipOperate(): Boolean = prefs.getBoolean(PIP_OPERATE, false)
 
+    /**
+     * Control mode. Off ("control in background"): the agent works on its own screen and the chat shows a small preview.
+     * On ("control in screen"): while a task is running, the live view of everything the agent does fills the chat screen.
+     */
+    fun controlInScreen(): Boolean = prefs.getBoolean(CONTROL_IN_SCREEN, false)
+
+    fun setControlInScreen(on: Boolean) {
+        prefs.edit().putBoolean(CONTROL_IN_SCREEN, on).commit()
+    }
+
     fun setPipOperate(on: Boolean) {
         prefs.edit().putBoolean(PIP_OPERATE, on).commit()
     }
@@ -377,6 +387,7 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         private const val SELF_CONFIG = "self_config"
         private const val SELF_OPERATE = "self_operate"
         private const val PIP_OPERATE = "pip_operate"
+        private const val CONTROL_IN_SCREEN = "control_in_screen"
         private const val EXTERNAL_SCHEDULE = "external_schedule"
         private const val PROACTIVE = "proactive"
         private const val THEME_MODE = "theme_mode"

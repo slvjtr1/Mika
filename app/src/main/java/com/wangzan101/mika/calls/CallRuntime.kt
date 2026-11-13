@@ -142,8 +142,8 @@ class CallRuntime(private val app: MikaApp) {
             var previousRevision = -1L
             voiceProfiles.revision.collect { current ->
                 if (previousRevision >= 0 && current > previousRevision) {
-                    lockedDial?.let { finishLockedDial(it, "实时语音配置已变更，未执行锁屏拨出") }
-                    cancelWork("实时语音配置已变更，电话由系统处理")
+                    lockedDial?.let { finishLockedDial(it, "Realtime voice settings changed; the locked-screen call was not placed") }
+                    cancelWork("Realtime voice settings changed; the system is handling the call")
                 }
                 previousRevision = current
             }
@@ -151,8 +151,8 @@ class CallRuntime(private val app: MikaApp) {
         scope.launch {
             app.phone.hub.shell.collect { current ->
                 if (shell != null && shell !== current) {
-                    lockedDial?.let { finishLockedDial(it, "内置助手断开，未执行锁屏拨出") }
-                    cancelWork("内置助手已断开，电话由系统处理")
+                    lockedDial?.let { finishLockedDial(it, "The built-in helper disconnected; the locked-screen call was not placed") }
+                    cancelWork("The built-in helper disconnected; the system is handling the call")
                 }
                 shell = current
                 audioReady = false
@@ -168,14 +168,14 @@ class CallRuntime(private val app: MikaApp) {
             settings.state.collect { config ->
                 lockedDial?.takeIf { !config.enabled || !config.credentialsConfigured || config.audioMode != it.config.audioMode ||
                     config.activeVoiceProfileId != it.config.activeVoiceProfileId }
-                    ?.let { finishLockedDial(it, "电话设置已变更，未执行锁屏拨出") }
+                    ?.let { finishLockedDial(it, "Phone settings changed; the locked-screen call was not placed") }
                 if (!hasAuthorizedIncomingStandby()) standbyService?.revokeIncomingAuthorization()
                 stopBackgroundStandbyIfUnneeded()
                 val active = work
                 if (active != null && (!config.enabled || !config.credentialsConfigured ||
                         config.audioMode != active.config.audioMode || config.activeVoiceProfileId != active.config.activeVoiceProfileId ||
                         (active.automatic && !active.answerSent && !CallPolicy.callerAllowed(config, active.track?.number)))) {
-                    cancelWork("AI 电话设置已变更，电话由系统处理")
+                    cancelWork("AI call settings changed; the system is handling the call")
                 }
                 if (config.audioMode != previousMode || config.enabled != previousEnabled) {
                     audioReady = false
@@ -193,8 +193,8 @@ class CallRuntime(private val app: MikaApp) {
             var previous = settings.credentialsRevision.value
             settings.credentialsRevision.collect { current ->
                 if (previous != current) {
-                    lockedDial?.let { finishLockedDial(it, "火山凭据已变更，未执行锁屏拨出") }
-                    cancelWork("火山凭据已变更，电话由系统处理")
+                    lockedDial?.let { finishLockedDial(it, "Volcengine credentials changed; the locked-screen call was not placed") }
+                    cancelWork("Volcengine credentials changed; the system is handling the call")
                 }
                 previous = current
             }
@@ -260,16 +260,16 @@ class CallRuntime(private val app: MikaApp) {
     /** Initial authorization comes only from this explicit action in the unlocked phone UI. */
     suspend fun startBackgroundStandby(): CallActionResult = onMain {
         val config = settings.state.value
-        if (!interactiveForeground() || !userUnlocked()) return@onMain fail("请解锁手机并在电话页面启动后台待命")
-        if (!CallStandbyPolicy.optedIn(config, userUnlocked())) return@onMain fail("请先开启自动接听并完成通话配置")
+        if (!interactiveForeground() || !userUnlocked()) return@onMain fail("Unlock the phone and start background standby on the Calls page")
+        if (!CallStandbyPolicy.optedIn(config, userUnlocked())) return@onMain fail("Turn on auto-answer and finish call setup first")
         autoAnswerBlocker(config)?.let { return@onMain fail(it) }
-        if (!CallStandbyService.notificationsAvailable(app, create = true)) return@onMain fail("请允许后台待命通知")
-        if (isIncomingStandbyRunning()) return@onMain ok("后台待命已启动")
+        if (!CallStandbyService.notificationsAvailable(app, create = true)) return@onMain fail("Allow the background standby notification")
+        if (isIncomingStandbyRunning()) return@onMain ok("Background standby started")
         if (standbyStarting) return@onMain fail("Android 正在启动后台待命")
-        if (!settings.authorizeBackgroundStandby()) return@onMain fail("无法保存后台接听授权，请重试")
-        if (!requestCallForegroundService(incoming = true)) return@onMain fail(standbyStartError ?: "后台待命未启动")
+        if (!settings.authorizeBackgroundStandby()) return@onMain fail("Could not save background answering permission, please retry")
+        if (!requestCallForegroundService(incoming = true)) return@onMain fail(standbyStartError ?: "Background standby did not start")
         state.first { !it.backgroundStandbyStarting }
-        if (isIncomingStandbyRunning()) ok("后台待命已启动") else fail(standbyStartError ?: "后台待命未启动")
+        if (isIncomingStandbyRunning()) ok("Background standby started") else fail(standbyStartError ?: "Background standby did not start")
     }
 
     private fun requestCallForegroundService(incoming: Boolean): Boolean {
@@ -330,7 +330,7 @@ class CallRuntime(private val app: MikaApp) {
         standbyIncomingRequested = false
         standbyStartId = null
         standbyStartError = reason
-        lockedDial?.let { finishLockedDial(it, "后台电话服务未启动，未执行锁屏拨出") }
+        lockedDial?.let { finishLockedDial(it, "The background call service did not start; the locked-screen call was not placed") }
         publish()
     }
 
@@ -338,9 +338,9 @@ class CallRuntime(private val app: MikaApp) {
         if (standbyService !== service) return
         standbyService = null
         standbyRunning.value = false
-        lockedDial?.let { finishLockedDial(it, "后台电话服务停止，未执行锁屏拨出") }
+        lockedDial?.let { finishLockedDial(it, "The background call service stopped; the locked-screen call was not placed") }
         if (work?.let { (it.lockedDialTicket != null && it.placed) || (it.automatic && it.answerSent) } == true && !interactiveForeground()) {
-            cancelWork("后台电话服务已停止，通话由系统处理")
+            cancelWork("The background call service stopped; the system is handling the call")
         }
         cancelPendingIfStandbyLost()
         publish()
@@ -370,7 +370,7 @@ class CallRuntime(private val app: MikaApp) {
 
     private fun cancelPendingIfStandbyLost() {
         if (!canAutomaticallyAnswerHere() && work?.let { it.automatic && !it.answerSent && it.stopReason.value == null } == true) {
-            cancelWork("后台待命不可用，本次来电由系统电话处理")
+            cancelWork("Background standby is unavailable; the system phone app is handling this call")
         }
     }
 
@@ -395,10 +395,10 @@ class CallRuntime(private val app: MikaApp) {
 
     suspend fun pauseAutoAnswer(minutes: Int): CallActionResult = onMain {
         if (minutes !in 1..CallPolicy.MAX_AUTO_ANSWER_PAUSE_MINUTES) {
-            return@onMain fail("暂停时间须在 1 分钟到 24 小时之间")
+            return@onMain fail("The pause must be between 1 minute and 24 hours")
         }
         if (!settings.state.value.enabled || !settings.state.value.autoAnswer) {
-            return@onMain fail("自动接听尚未开启")
+            return@onMain fail("Auto-answer is not on")
         }
         saveAutoPause(System.currentTimeMillis() + minutes * 60_000L)
     }
@@ -406,12 +406,12 @@ class CallRuntime(private val app: MikaApp) {
     suspend fun resumeAutoAnswer(): CallActionResult = onMain { saveAutoPause(null) }
 
     private suspend fun saveAutoPause(until: Long?): CallActionResult {
-        if (autoPauseWriting) return fail("自动接听设置正在保存")
+        if (autoPauseWriting) return fail("Auto-answer settings are being saved")
         autoPauseWriting = true
         if (until != null) {
             // Existing calls handled by AI stay connected; a pending auto-answer is left alone.
             if (work?.let { it.automatic && !it.answerSent } == true) {
-                cancelWork("自动接听已暂停，本次来电由系统电话处理")
+                cancelWork("Auto-answer is paused; the system phone app is handling this call")
             }
             liveCalls().filter { it.phase == CallPhase.RINGING }.forEach { it.autoTried = true }
         }
@@ -427,33 +427,33 @@ class CallRuntime(private val app: MikaApp) {
             autoPauseWriting = false
             publish()
         }
-        return if (!saved) fail("无法保存自动接听暂停设置")
-        else ok(if (until == null) "已恢复自动接听设置" else "已暂停自动接听")
+        return if (!saved) fail("Could not save the auto-answer pause")
+        else ok(if (until == null) "Auto-answer resumed" else "Auto-answer paused")
     }
 
     suspend fun setHistoryHandled(id: String, handled: Boolean): CallActionResult = onMain {
-        historyResult(records.setHandled(id, handled), if (handled) "已标为已处理" else "已标为待处理")
+        historyResult(records.setHandled(id, handled), if (handled) "Marked as handled" else "Marked as pending")
     }
 
     suspend fun deleteHistory(id: String): CallActionResult = onMain {
-        historyResult(records.delete(id), "已删除通话记录")
+        historyResult(records.delete(id), "Call record deleted")
     }
 
     suspend fun clearHistory(): CallActionResult = onMain {
-        historyResult(records.clear(), "已清空通话记录")
+        historyResult(records.clear(), "Call history cleared")
     }
 
     private fun historyResult(result: CallHistory.Result, message: String): CallActionResult = when (result) {
         CallHistory.Result.SAVED -> ok(message)
-        CallHistory.Result.NOT_FOUND -> fail("这条通话记录已不存在")
-        CallHistory.Result.WRITE_FAILED -> fail("无法保存通话记录变更，请重试")
+        CallHistory.Result.NOT_FOUND -> fail("This call record no longer exists")
+        CallHistory.Result.WRITE_FAILED -> fail("Could not save the call record change, please retry")
     }
 
     fun activeVoiceProfile(): CallVoiceProfile {
         val config = settings.state.value
         return voiceProfiles.get(config.activeVoiceProfileId) ?: CallVoiceProfile(
             id = config.activeVoiceProfileId,
-            name = "默认实时语音",
+            name = "Default realtime voice",
             speaker = config.speaker,
             credentialsConfigured = config.credentialsConfigured,
             connectionTested = config.credentialsConfigured,
@@ -481,8 +481,8 @@ class CallRuntime(private val app: MikaApp) {
     }
 
     suspend fun selectVoiceProfile(id: String): CallActionResult = onMain {
-        if (work != null || lockedDial != null) return@onMain fail("请先结束当前通话或锁屏拨出安排")
-        val profile = voiceProfiles.get(id) ?: return@onMain fail("实时语音配置不存在")
+        if (work != null || lockedDial != null) return@onMain fail("End the current call or locked-screen call plan first")
+        val profile = voiceProfiles.get(id) ?: return@onMain fail("That realtime voice profile does not exist")
         settings.save(settings.state.value.copy(
             activeVoiceProfileId = profile.id,
             speaker = profile.speaker,
@@ -495,7 +495,7 @@ class CallRuntime(private val app: MikaApp) {
     }
 
     suspend fun saveVoiceProfile(profile: CallVoiceProfile, credentials: VolcRealtimeCredentials? = null): CallActionResult = onMain {
-        if (work != null || lockedDial != null) return@onMain fail("请先结束当前通话或锁屏拨出安排")
+        if (work != null || lockedDial != null) return@onMain fail("End the current call or locked-screen call plan first")
         val previous = voiceProfiles.get(profile.id)
         val saved = withContext(Dispatchers.IO) { voiceProfiles.save(profile, credentials) }
         if (settings.state.value.activeVoiceProfileId == saved.id) {
@@ -509,48 +509,48 @@ class CallRuntime(private val app: MikaApp) {
             ))
         }
         publish()
-        ok("实时语音配置已保存")
+        ok("Realtime voice profile saved")
     }
 
     suspend fun deleteVoiceProfile(id: String): CallActionResult = onMain {
-        if (work != null || lockedDial != null) return@onMain fail("请先结束当前通话或锁屏拨出安排")
+        if (work != null || lockedDial != null) return@onMain fail("End the current call or locked-screen call plan first")
         withContext(Dispatchers.IO) { voiceProfiles.delete(id, settings.state.value.activeVoiceProfileId) }
         publish()
-        ok("实时语音配置已删除")
+        ok("Realtime voice profile deleted")
     }
 
     suspend fun testVoiceProfile(id: String): CallActionResult = onMain {
-        if (work != null || lockedDial != null) return@onMain fail("请先结束当前通话或锁屏拨出安排")
-        val profile = voiceProfiles.get(id) ?: return@onMain fail("实时语音配置不存在")
-        val credentials = voiceProfiles.credentials(id) ?: return@onMain fail("请先配置实时语音凭据")
+        if (work != null || lockedDial != null) return@onMain fail("End the current call or locked-screen call plan first")
+        val profile = voiceProfiles.get(id) ?: return@onMain fail("That realtime voice profile does not exist")
+        val credentials = voiceProfiles.credentials(id) ?: return@onMain fail("Set up realtime voice credentials first")
         voiceProfiles.markConnectionTested(id, false)
         publish()
         try {
-            val session = realtimeProvider.connect(profile, credentials, "连接测试。不要生成语音。")
+            val session = realtimeProvider.connect(profile, credentials, "Connection test. Do not generate speech.")
             session.close()
             voiceProfiles.markConnectionTested(id, true)
             if (settings.state.value.activeVoiceProfileId == id) publish()
-            ok("实时语音服务连接成功；手机双向音频仍需通过测试电话验证")
+            ok("Connected to the realtime voice service; two-way phone audio still needs to be verified with a test call")
         } catch (error: Exception) {
             if (error is CancellationException) throw error
             val reason = when ((error as? VolcRealtimeException)?.kind) {
-                VolcRealtimeException.Kind.AUTH -> "凭据或服务权限无效"
-                VolcRealtimeException.Kind.RATE_LIMITED -> "实时语音服务请求过于频繁"
-                VolcRealtimeException.Kind.TIMEOUT -> "实时语音服务连接超时"
-                else -> "无法连接实时语音服务"
+                VolcRealtimeException.Kind.AUTH -> "Invalid credentials or service permissions"
+                VolcRealtimeException.Kind.RATE_LIMITED -> "Too many requests to the realtime voice service"
+                VolcRealtimeException.Kind.TIMEOUT -> "The realtime voice service connection timed out"
+                else -> "Could not connect to the realtime voice service"
             }
             fail(reason)
         }
     }
 
     suspend fun setAudioVerified(verified: Boolean): CallActionResult = onMain {
-        if (work != null || lockedDial != null) return@onMain fail("请先结束当前通话或锁屏拨出安排")
+        if (work != null || lockedDial != null) return@onMain fail("End the current call or locked-screen call plan first")
         val config = settings.state.value
         val id = config.activeVoiceProfileId
         withContext(Dispatchers.IO) { voiceProfiles.markAudioVerified(id, config.audioMode, verified) }
         settings.save(config.copy(audioVerified = verified, autoAnswer = verified && config.autoAnswer))
         publish()
-        ok(if (verified) "已记录本机双向音频验证" else "已取消双向音频验证，自动接听已关闭")
+        ok(if (verified) "Two-way audio verification recorded for this device" else "Two-way audio verification cancelled; auto-answer turned off")
     }
 
     suspend fun refresh(): CallActionResult = onMain {
@@ -561,18 +561,18 @@ class CallRuntime(private val app: MikaApp) {
         unobservedManagedCall = settings.state.value.enabled && liveCalls().isEmpty() && managedCallPresent() == true
         publish()
         maybeStartAutoAnswer()
-        if (state.value.prepared) ok("系统通话管理权限可用；连接状态以实际电话回调为准")
-        else fail("AI 电话尚未准备好")
+        if (state.value.prepared) ok("System call management permission is available; the real connection state depends on actual call callbacks")
+        else fail("AI calls are not ready yet")
     }
 
     suspend fun prepare(): CallActionResult = onMain {
         accessLock.withLock {
-            if (!settings.state.value.enabled) return@withLock report("请先开启 AI 电话")
-            if (work != null || liveCalls().isNotEmpty()) return@withLock report("请在没有通话时准备 AI 电话")
+            if (!settings.state.value.enabled) return@withLock report("Turn on AI calls first")
+            if (work != null || liveCalls().isNotEmpty()) return@withLock report("Prepare AI calls when there is no ongoing call")
             if (!access.supported) return@withLock report("电话伴侣模式需要 Android 12 及以上、主用户及运营商通话功能")
-            if (!access.hasPhonePermissions()) return@withLock report("请允许 Mika 的电话权限")
+            if (!access.hasPhonePermissions()) return@withLock report("Allow Mika's phone permission")
             if (managedCallPresent() != false) return@withLock report("Android 正在通话或无法确认空闲，请稍后再准备")
-            val helper = shell ?: return@withLock report("请先连接 Mika 内置助手")
+            val helper = shell ?: return@withLock report("Connect Mika's built-in helper first")
             configuring = true
             publish()
             try {
@@ -581,13 +581,13 @@ class CallRuntime(private val app: MikaApp) {
                 if (!settings.state.value.enabled) {
                     withContext(NonCancellable + Dispatchers.IO) { access.rollback(helper) }
                     armed = false
-                    return@withLock report("AI 电话已关闭")
+                    return@withLock report("AI calls turned off")
                 }
                 armed = error == null && access.ready()
                 readSims()
                 if (error != null) return@withLock report(error)
                 probeAudio()
-                detail = "电话伴侣已配置；机型的通话音频能力仍需单独验证"
+                detail = "Call companion configured; this phone model's call audio still needs to be verified separately"
                 ok(detail.orEmpty())
             } finally {
                 configuring = false
@@ -601,8 +601,8 @@ class CallRuntime(private val app: MikaApp) {
         accessLock.withLock {
             armed = false
             configuring = true
-            val active = cancelWork("AI 电话已关闭，电话由系统处理")
-            lockedDial?.let { finishLockedDial(it, "AI 电话已关闭，未执行锁屏拨出") }
+            val active = cancelWork("AI calls turned off; the system is handling the call")
+            lockedDial?.let { finishLockedDial(it, "AI calls turned off; the locked-screen call was not placed") }
             stopBackgroundStandby()
             publish()
             val saved: Boolean
@@ -625,9 +625,9 @@ class CallRuntime(private val app: MikaApp) {
                 publish()
             }
             if (!saved || !restored || !audioRestored) {
-                report("AI 已停止；系统配置或音频尚未确认还原，请连接内置助手后重试关闭")
+                report("AI stopped; system settings or audio may not be restored yet. Connect the built-in helper and try turning it off again")
             } else {
-                detail = "AI 电话已关闭，系统拨号器照常工作"
+                detail = "AI calls turned off; the system dialer works as usual"
                 publish()
                 ok(detail.orEmpty())
             }
@@ -638,27 +638,27 @@ class CallRuntime(private val app: MikaApp) {
         val taskSnapshot = try {
             task?.validatedSnapshot()
         } catch (e: IllegalArgumentException) {
-            return@onMain report(e.message ?: "本次拨打交代无效")
+            return@onMain report(e.message ?: "The instructions for this call are invalid")
         }
         prerequisite()?.let { return@onMain report(it) }
-        if (lockedDial != null) return@onMain report("请先取消已安排的锁屏拨出")
-        val normalized = CallPolicy.outgoingNumber(number) ?: return@onMain report("仅支持普通号码，不支持紧急号码、短号或控制代码")
-        if (isEmergency(normalized) != false) return@onMain report("紧急号码或无法确认安全的号码不能拨打")
+        if (lockedDial != null) return@onMain report("Cancel the scheduled locked-screen call first")
+        val normalized = CallPolicy.outgoingNumber(number) ?: return@onMain report("Only ordinary numbers are supported, not emergency numbers, short codes or control codes")
+        if (isEmergency(normalized) != false) return@onMain report("Emergency numbers or numbers that can't be confirmed safe can't be dialed")
         if (liveCalls().isNotEmpty() || work != null || managedCallPresent() != false) {
-            return@onMain report("已有通话或无法确认空闲，未拨号")
+            return@onMain report("A call is in progress or the line can't be confirmed free; not dialed")
         }
         readSims()
         prerequisite()?.let { return@onMain report(it) }
-        if (lockedDial != null) return@onMain report("请先取消已安排的锁屏拨出")
+        if (lockedDial != null) return@onMain report("Cancel the scheduled locked-screen call first")
         if (liveCalls().isNotEmpty() || work != null || managedCallPresent() != false) {
-            return@onMain report("已有通话或无法确认空闲，未拨号")
+            return@onMain report("A call is in progress or the line can't be confirmed free; not dialed")
         }
         val config = settings.state.value
         val picked = CallPolicy.chooseOutgoingSim(sims.map { it.info }, simId, config.defaultOutgoingSimId)
             ?: return@onMain report(when {
-                simId == null && config.defaultOutgoingSimId != null -> "保存的默认拨号 SIM 已不可用，请重新选择"
-                sims.isEmpty() -> "没有可用于运营商通话的 SIM"
-                else -> "请选择一张有效的 SIM，或明确选择系统默认 SIM"
+                simId == null && config.defaultOutgoingSimId != null -> "The saved default SIM for calls is no longer available; choose again"
+                sims.isEmpty() -> "No SIM is available for carrier calls"
+                else -> "Choose a valid SIM, or explicitly choose the system default SIM"
             })
         val sim = sims.single { it.info.id == picked.id }
         val attempt = Work(CallDirection.OUTGOING, config, requestedNumber = normalized, sim = sim, task = taskSnapshot)
@@ -668,33 +668,33 @@ class CallRuntime(private val app: MikaApp) {
 
     /** Takes effect only after the owner confirms this specific task while the app is visible. */
     suspend fun queueLockedDial(number: String, simId: String? = null, task: CallTaskBrief): CallActionResult = onMain {
-        if (!interactiveForeground() || !userUnlocked()) return@onMain fail("请解锁手机并在电话页面确认本次拨号")
-        if (!secureDeviceLock()) return@onMain fail("请先为手机设置 PIN、图案或密码锁")
-        if (lockedDial != null) return@onMain fail("已有一次锁屏拨出，请先取消")
+        if (!interactiveForeground() || !userUnlocked()) return@onMain fail("Unlock the phone and confirm this call on the Calls page")
+        if (!secureDeviceLock()) return@onMain fail("Set a PIN, pattern or password lock on the phone first")
+        if (lockedDial != null) return@onMain fail("A locked-screen call is already scheduled; cancel it first")
         val snapshot = try { task.validatedSnapshot() } catch (e: IllegalArgumentException) {
-            return@onMain fail(e.message ?: "本次拨打交代无效")
+            return@onMain fail(e.message ?: "The instructions for this call are invalid")
         }
         prerequisite()?.let { return@onMain fail(it) }
-        val normalized = CallPolicy.outgoingNumber(number) ?: return@onMain fail("仅支持普通号码，不支持紧急号码、短号或控制代码")
-        if (isEmergency(normalized) != false) return@onMain fail("紧急号码或无法确认安全的号码不能拨打")
-        if (!lockedDialIdle()) return@onMain fail("已有通话或无法确认空闲，未安排拨号")
+        val normalized = CallPolicy.outgoingNumber(number) ?: return@onMain fail("Only ordinary numbers are supported, not emergency numbers, short codes or control codes")
+        if (isEmergency(normalized) != false) return@onMain fail("Emergency numbers or numbers that can't be confirmed safe can't be dialed")
+        if (!lockedDialIdle()) return@onMain fail("A call is in progress or the line can't be confirmed free; nothing scheduled")
         readSims()
-        if (!withContext(Dispatchers.IO) { access.ready() }) return@onMain fail("系统通话管理权限不可用")
+        if (!withContext(Dispatchers.IO) { access.ready() }) return@onMain fail("System call management permission is unavailable")
         if (!interactiveForeground() || !userUnlocked() || !secureDeviceLock()) {
-            return@onMain fail("请在手机解锁时确认安排锁屏拨出")
+            return@onMain fail("Confirm the locked-screen call while the phone is unlocked")
         }
         prerequisite()?.let { return@onMain fail(it) }
-        if (lockedDial != null || !lockedDialIdle()) return@onMain fail("已有拨号安排或通话，未安排拨号")
+        if (lockedDial != null || !lockedDialIdle()) return@onMain fail("A call is already scheduled or in progress; nothing scheduled")
         val config = settings.state.value
         val picked = CallPolicy.chooseOutgoingSim(sims.map { it.info }, simId, config.defaultOutgoingSimId)
-            ?: return@onMain fail(if (simId == null && config.defaultOutgoingSimId != null) "保存的默认拨号 SIM 已不可用，请重新选择"
-                else "请选择一张有效的 SIM，或明确选择可用的系统默认 SIM")
+            ?: return@onMain fail(if (simId == null && config.defaultOutgoingSimId != null) "The saved default SIM for calls is no longer available; choose again"
+                else "Choose a valid SIM, or explicitly choose an available system default SIM")
         val sim = sims.single { it.info.id == picked.id }
-        if (!CallStandbyService.notificationsAvailable(app, create = true)) return@onMain fail("请允许后台待命通知，以便取消锁屏拨出")
-        val ticket = lockedDialGate.arm(normalized, picked.id, snapshot) ?: return@onMain fail("未能安排本次锁屏拨出")
+        if (!CallStandbyService.notificationsAvailable(app, create = true)) return@onMain fail("Allow the background standby notification so the locked-screen call can be cancelled")
+        val ticket = lockedDialGate.arm(normalized, picked.id, snapshot) ?: return@onMain fail("Could not schedule this locked-screen call")
         val pending = PendingLockedDial(ticket, config, sim, settings.credentialsRevision.value)
         lockedDial = pending
-        lockedDialDetail = "已安排锁屏拨出，请在 45 秒内锁屏"
+        lockedDialDetail = "Locked-screen call scheduled; lock the phone within 45 seconds"
         // A short one-shot lock keeps the confirmation window ticking as the screen turns off.
         // There is no indefinite standby wake lock and no attempt to wake or unlock the display.
         pending.wakeLock = runCatching {
@@ -705,24 +705,24 @@ class CallRuntime(private val app: MikaApp) {
             }
         }.getOrNull()
         if (pending.wakeLock == null) {
-            finishLockedDial(pending, "无法保持锁屏拨号确认窗口，未安排拨号")
+            finishLockedDial(pending, "Could not keep the locked-screen call confirmation window; nothing scheduled")
             return@onMain fail(lockedDialDetail.orEmpty())
         }
         if (standbyService == null && !requestCallForegroundService(incoming = false)) {
-            return@onMain fail(lockedDialDetail ?: "后台电话服务未启动")
+            return@onMain fail(lockedDialDetail ?: "The background call service did not start")
         }
         pending.job = scope.launch(start = CoroutineStart.LAZY) { observeLockedDial(pending) }
         pending.job?.start()
         publish()
         if (lockedDial === pending) ok("已安排一次锁屏拨出；Android 尚未拨号")
-        else fail(lockedDialDetail ?: "本次锁屏拨出未安排")
+        else fail(lockedDialDetail ?: "This locked-screen call was not scheduled")
     }
 
     suspend fun cancelLockedDial(requestId: String): CallActionResult = onMain {
         val pending = lockedDial?.takeIf { it.ticket.id == requestId }
-            ?: return@onMain fail("该锁屏拨出已结束或已提交系统")
-        finishLockedDial(pending, "已取消本次锁屏拨出")
-        ok("已取消本次锁屏拨出")
+            ?: return@onMain fail("That locked-screen call already ended or was handed to the system")
+        finishLockedDial(pending, "Locked-screen call cancelled")
+        ok("Locked-screen call cancelled")
     }
 
     private fun secureDeviceLock(): Boolean =
@@ -741,26 +741,26 @@ class CallRuntime(private val app: MikaApp) {
         while (lockedDial === pending) {
             val remaining = pending.ticket.expiresAtMs - SystemClock.elapsedRealtime()
             if (remaining <= 0L) {
-                finishLockedDial(pending, "锁屏拨出安排已过期，未拨号")
+                finishLockedDial(pending, "The locked-screen call plan expired; not dialed")
                 return
             }
             val deviceLocked = keyguardLocked()
             val eligible = lockedDialEligible(pending)
             if (pending.claimed) {
                 if (!deviceLocked || !eligible || standbyService == null) {
-                    finishLockedDial(pending, "手机已解锁或通话条件变化，未执行锁屏拨出")
+                    finishLockedDial(pending, "The phone was unlocked or call conditions changed; the locked-screen call was not placed")
                     return
                 }
             } else when (val decision = lockedDialGate.poll(pending.ticket, deviceLocked && standbyService != null, eligible)) {
                 LockedDialGate.Decision.WaitingForLock -> Unit
                 is LockedDialGate.Decision.Rejected -> {
-                    finishLockedDial(pending, if (decision.reason == LockedDialGate.Rejection.EXPIRED) "锁屏拨出安排已过期，未拨号"
-                        else "电话条件变化，未执行锁屏拨出")
+                    finishLockedDial(pending, if (decision.reason == LockedDialGate.Rejection.EXPIRED) "The locked-screen call plan expired; not dialed"
+                        else "Call conditions changed; the locked-screen call was not placed")
                     return
                 }
                 is LockedDialGate.Decision.Claimed -> {
                     pending.claimed = true
-                    lockedDialDetail = "手机已锁屏，正在准备拨号"
+                    lockedDialDetail = "Phone locked; preparing to dial"
                     val request = decision.request
                     startWork(Work(CallDirection.OUTGOING, pending.config, requestedNumber = request.number,
                         sim = pending.sim, task = request.task, lockedDialTicket = pending.ticket))
@@ -790,13 +790,13 @@ class CallRuntime(private val app: MikaApp) {
     private fun validateLockedDial(w: Work) {
         val ticket = w.lockedDialTicket ?: return
         val pending = lockedDial?.takeIf { it.ticket === ticket && it.claimed }
-            ?: throw CallProblem("锁屏拨出已取消，未拨号")
+            ?: throw CallProblem("Locked-screen call cancelled; not dialed")
         when (lockedDialGate.submissionRejection(ticket) {
             standbyService != null && lockedDialEligible(pending) && keyguardLocked()
         }) {
-            LockedDialGate.Rejection.EXPIRED -> throw CallProblem("锁屏拨出安排已过期，未拨号")
+            LockedDialGate.Rejection.EXPIRED -> throw CallProblem("The locked-screen call plan expired; not dialed")
             null -> Unit
-            else -> throw CallProblem("手机已解锁或通话条件变化，未执行锁屏拨出")
+            else -> throw CallProblem("The phone was unlocked or call conditions changed; the locked-screen call was not placed")
         }
     }
 
@@ -806,7 +806,7 @@ class CallRuntime(private val app: MikaApp) {
         if (expectedCallId != null && call?.id != expectedCallId) return@onMain report(CALL_CHANGED)
         if (call == null || call.direction != CallDirection.INCOMING || call.phase != CallPhase.RINGING ||
             call.suppressed || !carrierCall(call.call)) {
-            return@onMain report("没有可接听的单路运营商来电")
+            return@onMain report("No single incoming carrier call to answer")
         }
         work?.let {
             if (it.track === call && it.direction == CallDirection.INCOMING && it.stopReason.value == null) {
@@ -820,7 +820,7 @@ class CallRuntime(private val app: MikaApp) {
                 }
                 return@onMain awaitResult(it)
             }
-            return@onMain report("已有 AI 通话正在进行")
+            return@onMain report("An AI call is already in progress")
         }
         val attempt = Work(CallDirection.INCOMING, settings.state.value, track = call, expectedCallId = expectedCallId)
         startWork(attempt)
@@ -828,14 +828,14 @@ class CallRuntime(private val app: MikaApp) {
     }
 
     suspend fun hangup(expectedCallId: String? = null): CallActionResult = onMain {
-        if (!settings.state.value.enabled || !armed) return@onMain report("AI 电话尚未准备好")
+        if (!settings.state.value.enabled || !armed) return@onMain report("AI calls are not ready yet")
         val call = liveCalls().singleOrNull()
         if (expectedCallId != null && call?.id != expectedCallId) return@onMain report(CALL_CHANGED)
         if (call == null || call.phase == CallPhase.DISCONNECTING || !carrierCall(call.call)) {
-            return@onMain report("没有可挂断的单路运营商通话")
+            return@onMain report("No single carrier call to hang up")
         }
         call.suppressed = true
-        val active = cancelWork("用户挂断")
+        val active = cancelWork("User hung up")
         val cleaned = awaitCleanup(active)
         val endedMessage = if (cleaned) "Android 已确认通话结束" else "Android 已确认通话结束；音频恢复尚未确认"
         if (confirmedEnded(call)) return@onMain ok(endedMessage)
@@ -852,23 +852,23 @@ class CallRuntime(private val app: MikaApp) {
         val target = current?.track
         if (current == null || target == null || !isPendingAutoAnswer(current, target) ||
             !isCurrentCall(target, expectedCallId)) {
-            return@onMain fail("没有可取消的这次自动接听")
+            return@onMain fail("No auto-answer to cancel for this call")
         }
-        val active = cancelWork("已取消本次 AI 接听")
-        if (!awaitCleanup(active)) return@onMain fail("已取消 AI 接听，清理尚未确认")
-        if (isCurrentCall(target, expectedCallId) && target.phase == CallPhase.RINGING) ok("已取消 AI 接听，电话继续响铃")
-        else ok("已取消本次 AI 接听")
+        val active = cancelWork("AI answering cancelled for this call")
+        if (!awaitCleanup(active)) return@onMain fail("AI answering cancelled; cleanup not yet confirmed")
+        if (isCurrentCall(target, expectedCallId) && target.phase == CallPhase.RINGING) ok("AI answering cancelled; the phone keeps ringing")
+        else ok("AI answering cancelled for this call")
     }
 
     suspend fun takeover(): CallActionResult = takeover(null)
 
     internal suspend fun takeover(callId: String?): CallActionResult = onMain {
         val current = work
-        if (current == null || (callId != null && callId != current.id)) return@onMain fail("这次 AI 通话已结束")
+        if (current == null || (callId != null && callId != current.id)) return@onMain fail("This AI call has ended")
         current.track?.suppressed = true
-        val active = cancelWork(if (current.pendingRing) "已取消本次 AI 接听" else "已停止 AI，通话交给系统拨号器")
-        if (awaitCleanup(active)) ok(detail ?: "已停止 AI")
-        else report("AI 已停止，通话音频恢复尚未确认，请查看系统电话界面")
+        val active = cancelWork(if (current.pendingRing) "AI answering cancelled for this call" else "AI stopped; the call was handed to the system dialer")
+        if (awaitCleanup(active)) ok(detail ?: "AI stopped")
+        else report("AI stopped; call audio restoration is not confirmed, check the system phone screen")
     }
 
     internal fun onCallAdded(service: MikaInCallService, call: Call) {
@@ -887,7 +887,7 @@ class CallRuntime(private val app: MikaApp) {
         }
         val calls = liveCalls()
         if (calls.isNotEmpty()) lockedDial?.takeUnless { work?.lockedDialTicket === it.ticket && work?.placed == true }
-            ?.let { finishLockedDial(it, "检测到另一通电话，未执行锁屏拨出") }
+            ?.let { finishLockedDial(it, "Another call was detected; the locked-screen call was not placed") }
         if (calls.size > 1) calls.filter { it.phase == CallPhase.RINGING }.forEach { it.autoTried = true }
         val active = work
         if (active != null) {
@@ -901,18 +901,18 @@ class CallRuntime(private val app: MikaApp) {
                 active.result.complete(ok("Android 已确认拨号；是否接通请查看实时状态"))
             }
             when {
-                calls.size > 1 -> cancelWork("检测到多路通话，已交还系统拨号器")
+                calls.size > 1 -> cancelWork("Multiple calls detected; handed back to the system dialer")
                 target === t && disconnected(call) -> cancelWork(callEndMessage(t))
                 target === t && active.direction == CallDirection.INCOMING && !active.answerSent && t.phase != CallPhase.RINGING ->
                     cancelWork(if (t.phase == CallPhase.ACTIVE || t.phase == CallPhase.CONNECTING || t.phase == CallPhase.HOLDING)
-                        "已由系统电话处理，AI 未介入" else "来电不再响铃，AI 未接听")
+                        "Handled by the system phone app; AI did not step in" else "The incoming call stopped ringing; AI did not answer")
                 target === t && active.direction == CallDirection.INCOMING && !active.answerSent &&
                     (t.direction != CallDirection.INCOMING || !carrierCall(t.call)) ->
-                    cancelWork("来电已变化，AI 未接听")
+                    cancelWork("The incoming call changed; AI did not answer")
                 target === t && active.automatic && !active.answerSent &&
-                    !CallPolicy.callerAllowed(settings.state.value, t.number) -> cancelWork("来电已不符合自动接听规则")
+                    !CallPolicy.callerAllowed(settings.state.value, t.number) -> cancelWork("The incoming call no longer matches the auto-answer rules")
                 target === t && t.phase != CallPhase.ACTIVE && active.bridging ->
-                    cancelWork("通话已切换，AI 音频已停止")
+                    cancelWork("The call switched; AI audio stopped")
             }
         }
         publish()
@@ -945,7 +945,7 @@ class CallRuntime(private val app: MikaApp) {
     internal fun onTelecomMuteChanged(service: MikaInCallService, muted: Boolean) {
         val current = work ?: return
         if (current.track?.service === service && current.muteLease?.observeTelecomMute(muted) == true) {
-            cancelWork("系统通话静音已解除，AI 已交还通话")
+            cancelWork("System call mute was lifted; AI handed the call back")
         }
     }
 
@@ -978,43 +978,43 @@ class CallRuntime(private val app: MikaApp) {
     private suspend fun runWork(w: Work) {
         try {
             if (!notifications.show(w.id, detail.orEmpty(), ringing = w.direction == CallDirection.INCOMING)) {
-                throw CallProblem("需要打开 AI 电话通知，才能随时取消或接管")
+                throw CallProblem("Turn on AI call notifications so you can cancel or take over at any time")
             }
             if (!interactiveForeground()) acquireCallWakeLock(w, 20_000L)
             if (w.automatic) waitAutoAnswerDelay(w)
             prerequisite(ignoreWork = true)?.let { throw CallProblem(it) }
             validateTarget(w)
-            val helper = shell ?: throw CallProblem("Mika 内置助手未连接")
+            val helper = shell ?: throw CallProblem("Mika's built-in helper is not connected")
             val profile = voiceProfiles.get(w.config.activeVoiceProfileId)
-                ?: throw CallProblem("实时语音配置不可用，请重新选择")
+                ?: throw CallProblem("The realtime voice profile is unavailable; choose again")
             val credentials = withContext(Dispatchers.IO) { voiceProfiles.credentials(profile.id) }
-                ?: throw CallProblem("实时语音凭据不可用，请重新保存")
-            if (!probeAudio()) throw CallProblem(audioDetail ?: "此设备的双向通话音频不可用")
+                ?: throw CallProblem("Realtime voice credentials are unavailable; save them again")
+            if (!probeAudio()) throw CallProblem(audioDetail ?: "Two-way call audio is unavailable on this device")
             if (shell !== helper || w.config.audioMode != settings.state.value.audioMode) {
-                throw CallProblem("通话音频设置已变化，请重试")
+                throw CallProblem("Call audio settings changed, please retry")
             }
             validateTarget(w)
             w.mediaStage = MediaStage.VOLC_CONNECT
             val ownerRules = withContext(Dispatchers.IO) {
                 runCatching { instructions.promptSnapshot() }
-                    .getOrElse { throw CallProblem("无法读取电话交代，未由 AI 操作电话") }
+                    .getOrElse { throw CallProblem("Could not read call instructions; AI did not handle the call") }
             }
             validateTarget(w)
             val session = withTimeoutOrNull(5_000L) {
                 realtimeProvider.connect(profile, credentials,
                     CallPolicy.prompt(w.config.systemPrompt, w.direction, ownerRules, task = w.task))
-            } ?: throw CallProblem("实时语音连接超时，未由 AI 接管")
+            } ?: throw CallProblem("The realtime voice connection timed out; AI did not take over")
             w.session = session
-            if (!session.setMuted(true)) throw CallProblem("火山实时语音未进入就绪状态")
+            if (!session.setMuted(true)) throw CallProblem("Volcengine realtime voice did not become ready")
             if (!withContext(Dispatchers.IO) { access.ready() }) {
                 armed = false
-                throw CallProblem("系统通话管理权限不可用，未由 AI 操作电话")
+                throw CallProblem("System call management permission is unavailable; AI did not handle the call")
             }
             prerequisite(ignoreWork = true)?.let { throw CallProblem(it) }
             validateTarget(w)
             w.mediaStage = MediaStage.TELECOM_CONNECT
             if (w.direction == CallDirection.INCOMING) {
-                val target = w.track ?: throw CallProblem("来电已结束")
+                val target = w.track ?: throw CallProblem("The incoming call ended")
                 w.answerSent = true
                 w.telecomActionIssued = true
                 detail = "正在等待 Android 确认接听"
@@ -1023,20 +1023,20 @@ class CallRuntime(private val app: MikaApp) {
                 }
                 publish()
             } else {
-                if (liveCalls().isNotEmpty() || managedCallPresent() != false) throw CallProblem("已有通话或无法确认空闲，未拨号")
-                val sim = w.sim ?: throw CallProblem("没有可用的 SIM")
-                val number = w.requestedNumber ?: throw CallProblem("没有可用的电话号码")
+                if (liveCalls().isNotEmpty() || managedCallPresent() != false) throw CallProblem("A call is in progress or the line can't be confirmed free; not dialed")
+                val sim = w.sim ?: throw CallProblem("No SIM available")
+                val number = w.requestedNumber ?: throw CallProblem("No phone number available")
                 // Preparing the realtime session takes time; do not let Telecom fall back to a
                 // different account if the chosen SIM disappeared in the meantime.
                 readSims()
                 if (w.lockedDialTicket != null && !withContext(Dispatchers.IO) { access.ready() }) {
                     armed = false
-                    throw CallProblem("系统通话管理权限不可用，未执行锁屏拨出")
+                    throw CallProblem("System call management permission is unavailable; the locked-screen call was not placed")
                 }
-                if (sims.none { it.handle == sim.handle }) throw CallProblem("选定的拨号 SIM 已不可用，请重新选择")
+                if (sims.none { it.handle == sim.handle }) throw CallProblem("The selected SIM for calls is no longer available; choose again")
                 prerequisite(ignoreWork = true)?.let { throw CallProblem(it) }
-                if (liveCalls().isNotEmpty() || managedCallPresent() != false) throw CallProblem("已有通话或无法确认空闲，未拨号")
-                if (isEmergency(number) != false) throw CallProblem("无法确认此号码可安全拨打")
+                if (liveCalls().isNotEmpty() || managedCallPresent() != false) throw CallProblem("A call is in progress or the line can't be confirmed free; not dialed")
+                if (isEmergency(number) != false) throw CallProblem("Could not confirm this number is safe to dial")
                 val extras = Bundle().apply {
                     putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, sim.handle)
                     putBundle(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS, Bundle().apply { putString(TOKEN, w.id) })
@@ -1059,15 +1059,15 @@ class CallRuntime(private val app: MikaApp) {
             if (!waitFor(limit) { w.track?.phase == CallPhase.ACTIVE }) {
                 throw CallProblem("Android 未确认通话接通，电话由系统处理")
             }
-            val target = w.track ?: throw CallProblem("通话已结束")
+            val target = w.track ?: throw CallProblem("Call ended")
             if (!carrierCall(target.call) || liveCalls().singleOrNull() !== target) {
-                throw CallProblem("当前通话无法由 AI 安全接管")
+                throw CallProblem("AI can't safely take over the current call")
             }
             w.activeAt = System.currentTimeMillis()
             w.activeElapsed = SystemClock.elapsedRealtime()
             acquireCallWakeLock(w)
             w.bridging = true
-            detail = "已接通，正在建立双向音频"
+            detail = "Connected; setting up two-way audio"
             publish()
             runAudio(w, helper, session)
         } catch (e: CancellationException) {
@@ -1076,24 +1076,24 @@ class CallRuntime(private val app: MikaApp) {
             throw e
         } catch (e: CallProblem) {
             debugMediaException(w, e)
-            w.stopReason.record(e.message ?: "AI 电话未就绪")
+            w.stopReason.record(e.message ?: "AI calls are not ready")
         } catch (e: CallMediaFailure) {
             debugMediaException(w, e)
             if (w.stopReason.value == null) {
-                w.stopReason.record(shellAudioFailure(w) ?: e.message ?: "通话音频已断开")
+                w.stopReason.record(shellAudioFailure(w) ?: e.message ?: "Call audio disconnected")
             }
         } catch (e: VolcRealtimeException) {
             debugMediaException(w, e)
             w.stopReason.record(when (e.kind) {
-                VolcRealtimeException.Kind.AUTH -> "火山拒绝认证，请检查电话语音凭据和服务开通状态"
-                VolcRealtimeException.Kind.RATE_LIMITED -> "火山实时语音达到服务限额，电话由系统处理"
-                VolcRealtimeException.Kind.TIMEOUT, VolcRealtimeException.Kind.NETWORK -> "火山实时语音连接不可用，电话由系统处理"
-                VolcRealtimeException.Kind.BACKPRESSURE -> "火山实时音频拥塞，电话由系统处理"
-                else -> "火山实时语音未能继续，请检查通话配置"
+                VolcRealtimeException.Kind.AUTH -> "Volcengine rejected authentication; check the call voice credentials and that the service is enabled"
+                VolcRealtimeException.Kind.RATE_LIMITED -> "Volcengine realtime voice hit its service limit; the system is handling the call"
+                VolcRealtimeException.Kind.TIMEOUT, VolcRealtimeException.Kind.NETWORK -> "Volcengine realtime voice connection unavailable; the system is handling the call"
+                VolcRealtimeException.Kind.BACKPRESSURE -> "Volcengine realtime audio is congested; the system is handling the call"
+                else -> "Volcengine realtime voice could not continue; check the call setup"
             })
         } catch (e: Exception) {
             debugMediaException(w, e)
-            w.stopReason.record("AI 音频连接失败，电话由系统处理")
+            w.stopReason.record("AI audio connection failed; the system is handling the call")
         } finally {
             withContext(NonCancellable) {
                 w.mediaStage = MediaStage.RELEASE
@@ -1106,7 +1106,7 @@ class CallRuntime(private val app: MikaApp) {
                     w.stopReason.refine(FAREWELL_ENDING, if (ended) "通话已收尾，Android 已挂断"
                         else "通话已收尾，Android 未确认挂断，已交还系统")
                 }
-                val reason = w.stopReason.value ?: "AI 已退出，电话由系统处理"
+                val reason = w.stopReason.value ?: "AI exited; the system is handling the call"
                 if (BuildConfig.DEBUG) w.mediaCounters.playbackDiagnostic()?.let { Log.d("MikaCallMedia", "playback $it") }
                 w.track?.let {
                     if (w.telecomActionIssued) {
@@ -1147,9 +1147,9 @@ class CallRuntime(private val app: MikaApp) {
             return CallActionResult(false, app.getString(R.string.calls_summary_cloud_consent))
         }
         val record = records.state.value.firstOrNull { it.id == id }
-            ?: return CallActionResult(false, "找不到这条通话记录")
-        if (record.transcript.isEmpty()) return CallActionResult(false, "没有可用于总结的转写")
-        return if (records.retryFailedSummary(id) { summarizeCall(id, it.transcript) }) CallActionResult(true, "摘要已更新")
+            ?: return CallActionResult(false, "Call record not found")
+        if (record.transcript.isEmpty()) return CallActionResult(false, "No transcript available to summarize")
+        return if (records.retryFailedSummary(id) { summarizeCall(id, it.transcript) }) CallActionResult(true, "Summary updated")
         else CallActionResult(false, app.getString(R.string.calls_summary_failed))
     }
 
@@ -1205,8 +1205,8 @@ class CallRuntime(private val app: MikaApp) {
         val ready = probe?.getBoolean("ready") == true
         if (epoch == probeEpoch) {
             audioReady = ready
-            audioDetail = if (ready) "音频路径具备运行条件，仍需双向实机验证"
-                else probe?.getString("reason")?.take(160)?.takeIf { it.isNotBlank() } ?: "内置助手无法检测电话音频"
+            audioDetail = if (ready) "The audio path is ready; two-way verification on a real call is still needed"
+                else probe?.getString("reason")?.take(160)?.takeIf { it.isNotBlank() } ?: "The built-in helper can't detect call audio"
             publish()
         }
         return ready
@@ -1218,25 +1218,25 @@ class CallRuntime(private val app: MikaApp) {
             if (greeting.isBlank()) R.string.calls_notification_connected_waiting else R.string.calls_notification_connected,
         )
         if (!notifications.show(w.id, app.getString(R.string.calls_notification_connecting_audio), ringing = false)) {
-            throw CallProblem("电话通知不可用，已交还系统")
+            throw CallProblem("Call notifications are unavailable; handed back to the system")
         }
         // Capture is never started while ringing, dialing, held, or in a different call.
-        val target = w.track ?: throw CallProblem("通话已结束")
+        val target = w.track ?: throw CallProblem("Call ended")
         if (!sameActiveMuteTarget(w, target) || target.suppressed || shell !== helper) {
-            throw CallProblem("通话状态已变更，AI 未接入音频")
+            throw CallProblem("The call state changed; AI did not connect audio")
         }
         w.mediaStage = MediaStage.MUTE_ACQUIRE
         val mute = acquireTelecomMute(w, target)
         if (!sameActiveMuteTarget(w, target) || target.suppressed || shell !== helper ||
             !settings.state.value.enabled || !mute.isConfirmed(target.service.telecomMuted, microphoneMuted())) {
-            throw CallProblem("通话状态或静音已变更，AI 未接入音频")
+            throw CallProblem("The call state or mute changed; AI did not connect audio")
         }
         w.mediaStage = MediaStage.SHELL_OPEN
         w.audioHelper = helper
         val channel = withContext(NonCancellable + Dispatchers.IO) {
             val result = helper.openCallAudio(w.config.audioMode.wire, w.audioOwner)
             if (result?.getBoolean("ready") != true) {
-                throw CallProblem(result?.getString("reason")?.take(160)?.takeIf { it.isNotBlank() } ?: "此设备未建立双向电话音频")
+                throw CallProblem(result?.getString("reason")?.take(160)?.takeIf { it.isNotBlank() } ?: "Two-way call audio is not set up on this device")
             }
             val down = result.fd("downlink")
             val up = result.fd("uplink")
@@ -1245,7 +1245,7 @@ class CallRuntime(private val app: MikaApp) {
                 result.getInt("playRate") != session.outputSampleRate) {
                 runCatching { down?.close() }
                 runCatching { up?.close() }
-                throw CallProblem("内置助手的电话音频格式不兼容")
+                throw CallProblem("The built-in helper's call audio format is incompatible")
             }
             val capture = ParcelFileDescriptor.AutoCloseInputStream(down)
             val playback = ParcelFileDescriptor.AutoCloseOutputStream(up)
@@ -1257,7 +1257,7 @@ class CallRuntime(private val app: MikaApp) {
         }
         if (!sameActiveMuteTarget(w, target) || target.suppressed || shell !== helper ||
             !settings.state.value.enabled || !mute.isConfirmed(target.service.telecomMuted, microphoneMuted())) {
-            throw CallProblem("通话状态或静音已变更，未发送语音")
+            throw CallProblem("The call state or mute changed; no speech was sent")
         }
         val remaining = (w.config.maxCallSeconds * 1_000L - (SystemClock.elapsedRealtime() - w.activeElapsed)).coerceAtLeast(1)
         w.mediaStage = MediaStage.PCM_BRIDGE
@@ -1273,13 +1273,13 @@ class CallRuntime(private val app: MikaApp) {
                         }
                         if (stats?.getBoolean("active") != true) {
                             throw CallMediaFailure(shellAudioStopDiagnostic(stats?.getString("reason"))
-                                ?: "设备已停止双向音频，电话由系统处理")
+                                ?: "The device stopped two-way audio; the system is handling the call")
                         }
                         val bytes = stats.getLong("downBytes")
                         if (!w.aiActive) {
                             if (callAudioHasStarted(greeting, bytes, stats.getLong("upBytes"))) {
                                 if (!notifications.show(w.id, notification, ringing = false)) {
-                                    throw CallProblem("电话通知不可用，已交还系统")
+                                    throw CallProblem("Call notifications are unavailable; handed back to the system")
                                 }
                                 w.aiActive = true
                                 detail = notification
@@ -1289,11 +1289,11 @@ class CallRuntime(private val app: MikaApp) {
                                 }
                                 publish()
                             } else if (SystemClock.elapsedRealtime() - w.activeElapsed >= 7_000) {
-                                throw CallMediaFailure("双向音频未能及时建立，电话由系统处理")
+                                throw CallMediaFailure("Two-way audio was not set up in time; the system is handling the call")
                             }
                         } else {
                             stalled = if (lastBytes == bytes) stalled + 1 else 0
-                            if (stalled >= 2) throw CallMediaFailure("运营商音频输入无进展，电话由系统处理")
+                            if (stalled >= 2) throw CallMediaFailure("No progress on carrier audio input; the system is handling the call")
                         }
                         lastBytes = bytes
                     }
@@ -1329,7 +1329,7 @@ class CallRuntime(private val app: MikaApp) {
         }
         // A natural ending already issued the owner-bound disconnect with media still running.
         if (w.stopReason.value == FAREWELL_ENDING) return
-        val ending = "已达到 AI 通话时长上限"
+        val ending = "Reached the AI call length limit"
         if (!w.stopReason.record(ending)) return
         w.mediaStage = MediaStage.RELEASE
         w.session?.close()
@@ -1487,21 +1487,21 @@ class CallRuntime(private val app: MikaApp) {
             val t = w.track
             if (t == null || !isCurrentCall(t, w.expectedCallId) || t.phase != CallPhase.RINGING ||
                 t.direction != CallDirection.INCOMING || t.suppressed || !t.service.tracks(t.call) || !carrierCall(t.call)) {
-                throw CallProblem("来电已变化，AI 未接听")
+                throw CallProblem("The incoming call changed; AI did not answer")
             }
             if (w.automatic) {
-                if (!canAutomaticallyAnswerHere()) throw CallProblem("后台待命不可用，本次来电由系统电话处理")
+                if (!canAutomaticallyAnswerHere()) throw CallProblem("Background standby is unavailable; the system phone app is handling this call")
                 val config = settings.state.value
                 val initial = t.initialRingPolicy
                 if (autoPauseWriting || initial == null ||
                     !CallPolicy.callerAllowed(initial, t.number, t.ringObservedWallMs) ||
                     !CallPolicy.callerAllowed(config, t.number) || config.audioMode != w.config.audioMode ||
                     SystemClock.elapsedRealtime() - t.ringObservedAt > CallPolicy.AUTO_ANSWER_WINDOW_MS) {
-                    throw CallProblem("来电已超时或不再符合自动接听规则")
+                    throw CallProblem("The incoming call timed out or no longer matches the auto-answer rules")
                 }
             }
         } else {
-            if (liveCalls().isNotEmpty()) throw CallProblem("已有通话，未拨号")
+            if (liveCalls().isNotEmpty()) throw CallProblem("A call is in progress; not dialed")
             validateLockedDial(w)
         }
     }
@@ -1514,24 +1514,24 @@ class CallRuntime(private val app: MikaApp) {
             !w.answerSent && w.stopReason.value == null
 
     private fun autoAnswerBlocker(config: CallConfig, notificationReady: Boolean? = null): String? = when {
-        !config.audioVerified -> "请先确认当前模式的双向通话音频"
-        !config.allowAllIncoming && config.allowedIncomingNumbers.isEmpty() -> "自动接听名单为空"
+        !config.audioVerified -> "Confirm two-way call audio for the current mode first"
+        !config.allowAllIncoming && config.allowedIncomingNumbers.isEmpty() -> "The auto-answer list is empty"
         else -> prerequisite(ignoreWork = true, notificationReady = notificationReady)
-            ?: if (!audioReady) audioDetail ?: "设备通话音频尚未准备好" else null
+            ?: if (!audioReady) audioDetail ?: "Device call audio is not ready yet" else null
     }
 
     private fun prerequisite(
         ignoreWork: Boolean = false,
         notificationReady: Boolean? = null,
     ): String? = when {
-        !settings.state.value.enabled -> "AI 电话已关闭"
-        configuring -> "AI 电话正在配置"
-        !armed || !access.hasPhonePermissions() -> "请先准备 AI 电话"
-        shell == null -> "Mika 内置助手未连接"
-        !activeVoiceProfile().credentialsConfigured -> "请先配置实时语音凭据"
-        !activeVoiceProfile().connectionTested -> "请先测试实时语音连接"
-        !(notificationReady ?: notifications.ready()) -> "请允许 AI 电话通知，以便取消或接管"
-        !ignoreWork && work?.direction == CallDirection.OUTGOING -> "已在处理另一通电话"
+        !settings.state.value.enabled -> "AI calls turned off"
+        configuring -> "AI calls are being set up"
+        !armed || !access.hasPhonePermissions() -> "Prepare AI calls first"
+        shell == null -> "Mika's built-in helper is not connected"
+        !activeVoiceProfile().credentialsConfigured -> "Set up realtime voice credentials first"
+        !activeVoiceProfile().connectionTested -> "Test the realtime voice connection first"
+        !(notificationReady ?: notifications.ready()) -> "Allow AI call notifications so you can cancel or take over"
+        !ignoreWork && work?.direction == CallDirection.OUTGOING -> "Already handling another call"
         else -> null
     }
 
@@ -1550,7 +1550,7 @@ class CallRuntime(private val app: MikaApp) {
     private suspend fun awaitResult(w: Work): CallActionResult = try {
         w.result.await()
     } catch (e: CancellationException) {
-        if (!w.telecomActionIssued && !w.automatic && work === w) cancelWork("操作已取消，电话由系统处理")
+        if (!w.telecomActionIssued && !w.automatic && work === w) cancelWork("Cancelled; the system is handling the call")
         throw e
     }
 
@@ -1579,16 +1579,16 @@ class CallRuntime(private val app: MikaApp) {
         val standbyNotify = enabled && config.autoAnswer && CallStandbyService.notificationsAvailable(app)
         val baseBlocker = if (enabled && config.autoAnswer) autoAnswerBlocker(config, notificationReady) else null
         val standbyBlocked = if (enabled && config.autoAnswer) when {
-            !userUnlocked() -> "手机重启后须先由机主解锁"
-            !standbyNotify -> "请允许后台待命通知"
+            !userUnlocked() -> "After a restart, the owner must unlock the phone first"
+            !standbyNotify -> "Allow the background standby notification"
             baseBlocker != null -> baseBlocker
-            pauseSeconds != null -> "自动接听已暂停"
+            pauseSeconds != null -> "Auto-answer is paused"
             standbyStarting && standbyIncomingRequested -> null
-            !isIncomingStandbyRunning() -> standbyStartError ?: "请在电话页面启动后台待命"
+            !isIncomingStandbyRunning() -> standbyStartError ?: "Start background standby on the Calls page"
             else -> null
         } else null
         val blocker = if (enabled && config.autoAnswer) baseBlocker ?: if (!canAutomaticallyAnswerHere()) {
-            standbyBlocked ?: "后台待命正在启动"
+            standbyBlocked ?: "Background standby is starting"
         } else null else null
         val autoStage = when {
             countdown != null -> CallAutoAnswerStage.COUNTDOWN
@@ -1711,10 +1711,10 @@ class CallRuntime(private val app: MikaApp) {
     }.getOrNull()
 
     private fun callEndMessage(call: Tracked): String = when (call.call.details?.disconnectCause?.code) {
-        android.telecom.DisconnectCause.BUSY -> "对方占线，通话已结束"
+        android.telecom.DisconnectCause.BUSY -> "The line was busy; the call ended"
         android.telecom.DisconnectCause.ERROR, android.telecom.DisconnectCause.RESTRICTED -> "Android 报告通话失败"
-        android.telecom.DisconnectCause.MISSED -> "来电未接"
-        else -> "通话已结束"
+        android.telecom.DisconnectCause.MISSED -> "Missed call"
+        else -> "Call ended"
     }
 
     private suspend fun <T> onMain(block: suspend () -> T): T = withContext(Dispatchers.Main.immediate) { block() }
@@ -1806,8 +1806,8 @@ class CallRuntime(private val app: MikaApp) {
         const val MAX_MEDIA_DIAGNOSTICS = 4
         const val STANDBY_START_MS = 5_000L
         const val MUTE_ACK_MS = 2_000L
-        const val CALL_CHANGED = "指定通话已变化或结束，请重新读取电话状态"
-        private const val FAREWELL_ENDING = "通话已收尾，正在结束通话"
+        const val CALL_CHANGED = "The specified call changed or ended; read the call state again"
+        private const val FAREWELL_ENDING = "The call is wrapped up; ending the call"
         const val TOKEN = "com.wangzan101.mika.CALL_REQUEST_TOKEN"
         fun disconnected(call: Call): Boolean =
             call.state == Call.STATE_DISCONNECTED || call.state == Call.STATE_DISCONNECTING

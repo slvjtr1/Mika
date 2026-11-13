@@ -410,17 +410,17 @@ class ToolDispatcher internal constructor(
     /** 接管的结局交回后才知道,由循环补记进动作清单(核查器据此知道接管有没有真的发生)。 */
     fun noteTakeover(reason: String, back: HandBack) {
         val effect = when (back.outcome) {
-            HandBackOutcome.complete -> if (back.userFinished) "用户说已自己办完(未核实)" else "用户已交回(未核实)"
-            HandBackOutcome.skipped -> "接管被跳过"
-            HandBackOutcome.timeout -> "接管超时,无人处理"
-            HandBackOutcome.aborted -> "任务被取消"
+            HandBackOutcome.complete -> if (back.userFinished) "user says they finished it themselves (unverified)" else "user handed back (unverified)"
+            HandBackOutcome.skipped -> "takeover skipped"
+            HandBackOutcome.timeout -> "takeover timed out, nobody handled it"
+            HandBackOutcome.aborted -> "task cancelled"
         }
         evidenceLog.noteTakeover("${stepLabel()} ${ctx.tools.nameOf(Verb.HandToUser)}($reason) $effect")
         if (back.outcome == HandBackOutcome.complete) capabilities.forEach { it.onUserAnswered(ctx) }
     }
 
     /** 动作清单里的「第 N 步」和循环的轮次一致(批里的几步同属一轮);回放没有轮次。 */
-    private fun stepLabel() = if (ctx.currentStep > 0) "第${ctx.currentStep}步" else "回放"
+    private fun stepLabel() = if (ctx.currentStep > 0) "step ${ctx.currentStep}" else "replay"
 
     /** 发给主模型的一张图,按 [ModelImage] 统一编码;[screenshotId] 是屏幕画面的回看编号。 */
     fun modelImage(img: ByteArray, screenshotId: Int?): Part.Image = ModelImage.part(img, imageOps, screenshotId)
